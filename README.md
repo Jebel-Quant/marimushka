@@ -199,18 +199,6 @@ from marimushka.export import main
 main(template="my_templates/custom.html.j2")
 ```
 
-## 🧹 Cleaning Up
-
-When you run marimushka, it creates output directories
-(`_site`, `custom_output`, or
-other specified output directories). To clean these directories, you can use:
-
-```bash
-# Remove all files and directories that are ignored by git
-# This includes the output directories
-make clean
-```
-
 ## 👥 Contributing
 
 Contributions are welcome! Here's how you can contribute:
