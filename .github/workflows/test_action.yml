@@ -96,11 +96,15 @@ jobs:
       - name: Display help
         run: |
           uv run marimushka --help
-
+          uvx marimushka --help
+          uvx marimushka
+          
       - name: Display help export
         run: |
           uv run marimushka export --help
-
+          uvx marimushka export --help
+          
       - name: Display version
         run: |
           uv run marimushka version
+          uvx marimushka version
