@@ -83,6 +83,9 @@ jobs:
       id-token: write
       pages: write
 
+    environment:
+      name: github-pages
+
     steps:
       # Download all artifacts from previous jobs
       # This collects the outputs from both the jupyter and marimo jobs
