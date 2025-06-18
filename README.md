@@ -111,7 +111,7 @@ permissions:
 jobs:
   export:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Export marimo notebooks
         uses: jebel-quant/marimushka/actions/export@v0.0.24
@@ -122,9 +122,8 @@ jobs:
 ```
 
 The tool will create a Github artifact named 'marimushka'.
-The artifact is available in all jobs further downline declaring a dependency 
+The artifact is available in all jobs further downline declaring a dependency
 on the 'export' job
-
 
 ## 🎨 Customizing Templates
 
