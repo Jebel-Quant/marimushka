@@ -16,7 +16,7 @@ to HTML/WebAssembly format with custom styling. It helps you create beautiful,
 interactive web versions of your marimo notebooks and applications that can be
 shared with others or deployed to static hosting services like GitHub Pages.
 
-Named after the nesting doll concept, Marimushka "wraps" your marimo notebooks
+Marimushka "exports" your marimo notebooks
 in a stylish, customizable HTML template, making them accessible to anyone
 with a web browser - no Python installation required!
 
@@ -40,32 +40,10 @@ with a web browser - no Python installation required!
 
 ## 📥 Installation
 
-### Using pip
+We do not recommend to install the tool locally. Please use
 
 ```bash
-pip install marimushka
-```
-
-### Using uv (recommended)
-
-```bash
-uv pip install marimushka
-```
-
-### Development Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/jebel-quant/marimushka.git
-cd marimushka
-
-# Install dependencies using the Makefile
-make install
-
-# Or manually with uv
-uv venv
-uv pip install --upgrade pip
-uv sync --all-extras
+uvx marimushka
 ```
 
 ## 🛠️ Usage
@@ -74,34 +52,16 @@ uv sync --all-extras
 
 ```bash
 # Basic usage (uses default settings)
-marimushka
+uvx marimushka
 
 # Specify a custom template
-marimushka --template path/to/template.html.j2
+uvx marimushka --template path/to/template.html.j2
 
 # Specify a custom output directory
-marimushka --output my_site
+uvx marimushka --output my_site
 
 # Specify custom notebook and app directories
-marimushka --notebooks path/to/notebooks --apps path/to/apps
-```
-
-### Python API
-
-```python
-# Import the main function
-from marimushka.export import main
-
-# Basic usage with default settings
-main()
-
-# With custom settings
-main(
-    output="_site",                        # Output directory
-    template="templates/custom.html.j2",   # Custom template
-    notebooks="path/to/notebooks",         # Notebooks directory
-    apps="path/to/apps"                    # Apps directory
-)
+uvx marimushka --notebooks path/to/notebooks --apps path/to/apps
 ```
 
 ### Project Structure
@@ -145,33 +105,26 @@ You can use marimushka in your GitHub Actions workflow to automatically export
 and deploy your notebooks:
 
 ```yaml
-- name: Export marimo notebooks
-  uses: jebel-quant/marimushka/actions/export@main
-  with:
-    template: 'path/to/template.html.j2'  # Optional: custom template
-    notebooks: 'notebooks'                # Optional: notebooks directory
-    apps: 'apps'                          # Optional: apps directory
-```
-
-When the `publish` parameter is set to `true`, the action will:
-
-1. Create a `.nojekyll` file to prevent GitHub Pages
-from processing with Jekyll
-2. Create a basic `robots.txt` file for search engine optimization
-3. Deploy the exported notebooks to the `gh-pages` branch for GitHub Pages hosting
-
-Note: To use the publish feature, your repository needs to have GitHub Pages
-enabled and configured to use the `gh-pages` branch.
-
-Additionally, your workflow will need the following permissions:
-
-```yaml
 permissions:
-  contents: write  # Required for GitHub Pages deployment
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Export marimo notebooks
+        uses: jebel-quant/marimushka/actions/export@v0.0.24
+        with:
+          template: 'path/to/template.html.j2'  # Optional: custom template
+          notebooks: 'notebooks'                # Optional: notebooks directory
+          apps: 'apps'                          # Optional: apps directory
 ```
 
-This is necessary because the action needs write access to the repository contents
-to create or update the `gh-pages` branch.
+The tool will create a Github artifact named 'marimushka'.
+The artifact is available in all jobs further downline declaring a dependency 
+on the 'export' job
+
 
 ## 🎨 Customizing Templates
 
