@@ -127,20 +127,21 @@ on the 'export' job
 
 ## 🎨 Customizing Templates
 
-Marimushka uses Jinja2 templates to generate the index.html file.
+Marimushka uses Jinja2 templates to generate the 'index.html' file.
 You can customize the appearance of the index page by creating your own template.
 
 The template has access to two variables:
 
 - `notebooks`: A list of Notebook objects representing regular notebooks
 - `apps`: A list of Notebook objects representing app notebooks
+- `notebooks_wasm`: A list of Notebook objects representing interactive notebooks
 
 Each Notebook object has the following properties:
 
 - `display_name`: The display name of the notebook (derived from the filename)
 - `html_path`: The path to the exported HTML file
 - `path`: The original path to the notebook file
-- `is_app`: Whether the notebook is an app or a regular notebook
+- `kind`: The type of the notebook (notebook / apps / notebook_wasm )
 
 Example template structure:
 
@@ -179,24 +180,6 @@ Example template structure:
   {% endif %}
 </body>
 </html>
-```
-
-## 🧩 Examples
-
-### Basic Export
-
-```python
-# Export all notebooks and apps with default settings
-from marimushka.export import main
-main()
-```
-
-### Custom Template
-
-```python
-# Export with a custom template
-from marimushka.export import main
-main(template="my_templates/custom.html.j2")
 ```
 
 ## 👥 Contributing
