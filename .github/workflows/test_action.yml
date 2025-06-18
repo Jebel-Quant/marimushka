@@ -10,15 +10,13 @@ on:
   push:  # Trigger on push events to run tests automatically
 
 permissions:
-  contents: write  # Write access to repository contents for GitHub Pages deployment
+  contents: read  # Write access to repository contents for GitHub Pages deployment
 
 jobs:
   # Job to test exporting only notebooks (no apps)
   test-only-notebooks:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -83,6 +81,7 @@ jobs:
     needs: test-only-notebooks
     permissions:
       id-token: write
+      pages: write
 
     steps:
       # Download all artifacts from previous jobs
