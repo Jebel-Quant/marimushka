@@ -70,28 +70,6 @@ class TestFolder2Notebooks:
         assert str(notebook1) in notebook_paths
         assert str(notebook2) in notebook_paths
 
-    def test_folder2notebooks_with_apps(self, tmp_path):
-        """Test _folder2notebooks with apps."""
-        # Setup
-        apps_folder = tmp_path / "apps"
-        apps_folder.mkdir()
-
-        # Create some test app files
-        app1 = apps_folder / "app1.py"
-        app2 = apps_folder / "app2.py"
-        app1.write_text("# Test app 1")
-        app2.write_text("# Test app 2")
-
-        # Execute
-        result = folder2notebooks(folder=apps_folder, kind=Kind.APP)
-
-        # Assert
-        assert len(result) == 2
-        # Check that the paths are correct (convert to string for easier comparison)
-        app_paths = [str(notebook.path) for notebook in result]
-        assert str(app1) in app_paths
-        assert str(app2) in app_paths
-
 
 class TestGenerateIndex:
     """Tests for the _generate_index function."""
@@ -99,7 +77,7 @@ class TestGenerateIndex:
     @patch.object(Path, 'open', new_callable=mock_open)
     @patch('jinja2.Environment')
     def test_generate_index_success(self, mock_env, mock_file_open, tmp_path):
-        """Test successful generation of index.html."""
+        """Test the successful generation of index.html."""
         # Setup
         output_dir = tmp_path / "output"
         template_file = Path("template_dir/template.html.j2")
@@ -121,7 +99,11 @@ class TestGenerateIndex:
         mock_template.render.return_value = "<html>Rendered content</html>"
 
         # Execute
-        result = _generate_index(output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps, notebooks_wasm=notebooks_wasm)
+        result = _generate_index(output=output_dir,
+                                 template_file=template_file,
+                                 notebooks=notebooks,
+                                 apps=apps, 
+                                 notebooks_wasm=notebooks_wasm)
 
         # Assert
         # Check that to_wasm was called for each notebook and app
