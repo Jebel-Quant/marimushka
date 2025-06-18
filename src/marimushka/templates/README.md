@@ -5,12 +5,7 @@ page for exported marimo notebooks.
 
 ## Available Templates
 
-### 1. default.html.j2
-
-The default template with custom CSS styling. This template provides a clean,
-simple design for displaying your notebooks and apps.
-
-### 2. tailwind.html.j2
+### tailwind.html.j2
 
 A lean template based on [Tailwind CSS](https://tailwindcss.com/).
 This template uses Tailwind's utility

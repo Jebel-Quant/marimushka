@@ -1,22 +1,27 @@
-name: 'Export marimo notebooks using marimushka'
-description: 'Export of notebooks and apps'
+name: 'Marimushka Export Action'
+description: 'Export marimo notebooks and apps to static HTML and WebAssembly for deployment to GitHub Pages or other static hosting'
+author: 'Jebel Quant Research'
+branding:
+  icon: 'book'
+  color: 'blue'
 
 inputs:
   template:
-    description: 'The html.j2 template for export'
+    description: 'Path to a custom Jinja2 template file (.html.j2) for the index page. If not provided, the default Tailwind CSS template will be used.'
     required: false
   apps:
-    description: 'The folder for applications'
+    description: 'Directory containing marimo app files (.py) to be exported as WebAssembly applications with hidden code (run mode).'
     required: false
     default: 'apps'
   notebooks:
-    description: 'The folder for plain html notebooks'
+    description: 'Directory containing marimo notebook files (.py) to be exported as static HTML notebooks.'
     required: false
     default: 'notebooks'
   notebooks_wasm:
-    description: 'The folder for interactive notebooks'
+    description: 'Directory containing marimo notebook files (.py) to be exported as interactive WebAssembly notebooks with editable code (edit mode).'
     required: false
     default: 'notebooks'
+
 
 runs:
   using: "composite"
