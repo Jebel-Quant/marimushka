@@ -102,7 +102,7 @@ class TestGenerateIndex:
         result = _generate_index(output=output_dir,
                                  template_file=template_file,
                                  notebooks=notebooks,
-                                 apps=apps, 
+                                 apps=apps,
                                  notebooks_wasm=notebooks_wasm)
 
         # Assert
