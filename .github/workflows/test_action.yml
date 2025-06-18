@@ -81,6 +81,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: test-only-notebooks
+    permissions:
+      id-token: write
 
     steps:
       # Download all artifacts from previous jobs
