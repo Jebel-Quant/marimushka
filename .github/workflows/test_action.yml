@@ -39,8 +39,6 @@ jobs:
   book:
     runs-on: ubuntu-latest
     needs: test-only-notebooks
-    permissions:
-      contents: write
 
     steps:
       # Step 1: Download the marimo artifact
@@ -79,6 +77,35 @@ jobs:
           done
 
           echo "🎉 All required artifacts are present."
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test-only-notebooks
+
+    steps:
+      # Download all artifacts from previous jobs
+      # This collects the outputs from both the jupyter and marimo jobs
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: book
+
+      - name: Inspect artifacts folder
+        shell: bash
+        run: |
+          tree book
+
+        # Package all artifacts for GitHub Pages deployment
+        # This prepares the combined outputs for deployment
+      - name: Upload static files as artifact
+        id: upload
+        uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
+        with:
+          path: book/  # Path to the directory containing all artifacts
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   # Job to test the CLI help command
   help:
