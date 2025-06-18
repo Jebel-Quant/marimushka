@@ -41,7 +41,8 @@ exclude = [
     "__pycache__",
     "build",
     "dist",
-    "src/tests/resources/html_output/*"
+    "src/tests/resources/html_output/*",
+    "actions/exports/README.md"
 ]
 
 # Automatically fix violations where possible

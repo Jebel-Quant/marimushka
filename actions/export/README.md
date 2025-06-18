@@ -44,7 +44,8 @@ jobs:
 
 ## Outputs
 
-The action uploads the exported files as an artifact named `marimushka`. You can download this artifact in subsequent steps or jobs.
+The action uploads the exported files as an artifact named `marimushka`.
+You can download this artifact in subsequent steps or jobs.
 
 ## Example: Export and Deploy to GitHub Pages
 
