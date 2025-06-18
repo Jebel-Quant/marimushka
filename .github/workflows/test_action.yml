@@ -48,7 +48,7 @@ jobs:
       - name: Download marimo artifact
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: book
 
       # Step 2: Verify the downloaded artifact
       - name: Verify downloaded artifact
@@ -58,8 +58,9 @@ jobs:
 
           # Define the files to check
           required_files=(
-            "artifacts/marimushka/index.html"
-            "artifacts/marimushka/notebooks/fibonacci.html"
+            "book/marimushka/index.html"
+            "book/marimushka/notebooks/fibonacci.html"
+            "book/marimushka/notebooks/penguins.html"
           )
 
           # Check each file
@@ -68,9 +69,9 @@ jobs:
               echo "❌ Missing required file: $file"
               echo "📂 Current directory: $(pwd)"
               echo "📄 Listing artifacts/marimushka:"
-              ls -l artifacts/marimushka || echo "❓ Directory not found"
+              ls -l book/marimushka || echo "❓ Directory not found"
               echo "📄 Listing artifacts/marimushka/notebooks:"
-              ls -l artifacts/marimushka/notebooks || echo "❓ Directory not found"
+              ls -l book/marimushka/notebooks || echo "❓ Directory not found"
               exit 1
             else
               echo "✅ Found: $file"
