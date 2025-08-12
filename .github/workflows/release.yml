@@ -50,7 +50,7 @@ jobs:
     steps:
       # Check out the repository code
       - name: Checkout [${{ github.repository }}]
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Download the built package artifacts from the build job
       - uses: actions/download-artifact@v5

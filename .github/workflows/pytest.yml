@@ -20,7 +20,7 @@ jobs:
 
     steps:
       # Check out the repository code
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Set up Python environment using uv with the specified version
       - name: Set up Python ${{ matrix.python-version }}
@@ -47,7 +47,7 @@ jobs:
 
     steps:
       # Check out the repository code
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Run tests using the Makefile to ensure it works correctly
       - name: Run via Makefile
