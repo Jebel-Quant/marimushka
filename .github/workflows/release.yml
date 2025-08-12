@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@v4
 
       # Download the built package artifacts from the build job
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: dist  # Artifact name containing the built packages
           path: dist  # Local path to download to

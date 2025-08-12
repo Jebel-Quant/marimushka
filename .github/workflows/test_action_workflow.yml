@@ -32,7 +32,7 @@ jobs:
           notebooks_wasm: 'src/tests/resources/notebooks_wasm'
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: marimushka
           path: /tmp/all-inputs
