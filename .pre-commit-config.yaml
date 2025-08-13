@@ -1,28 +1,34 @@
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: check-toml
-      - id: end-of-file-fixer
-        exclude: src/tests/resources/html_output
+      - id: check-yaml
 
-      - id: trailing-whitespace
-        exclude: src/tests/resources/html_output
-
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 'v0.12.8'
     hooks:
       - id: ruff
         args: [ --fix, --exit-non-zero-on-fix, --unsafe-fixes ]
+
       # Run the formatter
       - id: ruff-format
-        exclude: src/tests
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.45.0
+    hooks:
+      - id: markdownlint
+        args: ["--disable", "MD013"]
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.33.2
     hooks:
       - id: check-renovate
-        args: ["--verbose"]
+        args: [ "--verbose" ]
+
       - id: check-github-workflows
         args: ["--verbose"]
 
@@ -30,7 +36,7 @@ repos:
     rev: v1.7.7
     hooks:
       - id: actionlint
-        args: [-ignore, SC]
+        args: [ -ignore, SC ]
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.24.1

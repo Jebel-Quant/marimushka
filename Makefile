@@ -1,47 +1,32 @@
-# Makefile for the marimushka project
-# This Makefile provides commands for setting up the development environment,
-# running tests, starting interactive notebooks, and maintaining code quality.
+# Colors for pretty output
+BLUE := \033[36m
+BOLD := \033[1m
+GREEN := \033[32m
+RESET := \033[0m
 
-# Set the default target to 'help' when running make without arguments
 .DEFAULT_GOAL := help
 
-# Create a Python virtual environment using uv (faster alternative to venv)
-venv:
-	@curl -LsSf https://astral.sh/uv/install.sh | sh  # Install uv if not already installed
-	@uv venv --python '3.12'  # Create a virtual environment with Python 3.12
+.PHONY: build clean book check
 
+install: ## install
+	task build:install
 
-# Mark 'install' as a phony target (not associated with a file)
-.PHONY: install
-install: venv ## Install a virtual environment
-	@uv pip install --upgrade pip  # Ensure pip is up to date
-	@uv sync --all-extras  # Install all dependencies from pyproject.toml
+clean: ## clean
+	task cleanup:clean
 
+test: install ## run all tests
+	task docs:test
 
-# Mark 'fmt' as a phony target
-.PHONY: fmt
-fmt: venv ## Run autoformatting and linting
-	@uvx pre-commit run --all-files  # Run all pre-commit hooks on all files
+book: test ## compile the companion book
+	task docs:docs
+	task docs:marimushka
+	task docs:book
 
-# Mark 'test' as a phony target
-.PHONY: test
-test: install ## Run tests with pytest
-	#@uv pip install -e ".[dev]"  # Install package with dev dependencies
-	@uv run python -m pytest src/tests/ -v --cov=src/marimushka --cov-report term-missing # Run all tests with coverage reporting
+check: install ## check the pre-commit hooks, the linting and deptry
+	task quality:check
 
-
-# Mark 'clean' as a phony target
-.PHONY: clean
-clean:  ## Clean up caches and build artifacts
-	# Remove all files and directories that are ignored by git
-	# -X: only remove files ignored by git, -d: include directories, -f: force
-	@git clean -X -d -f
-
-
-# Mark 'help' as a phony target
-.PHONY: help
-help:  ## Display this help screen
-	@echo -e "\033[1mAvailable commands:\033[0m"  # Print header in bold
-	# Find all targets with comments (##) and display them as a help menu
-	# This grep/awk command extracts target names and their descriptions from the Makefile
-	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' | sort
+help: ## Display this help message
+	@printf "$(BOLD)Usage:$(RESET)\n"
+	@printf "  make $(BLUE)<target>$(RESET)\n\n"
+	@printf "$(BOLD)Targets:$(RESET)\n"
+	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  $(BLUE)%-15s$(RESET) %s\n", $$1, $$2 } /^##@/ { printf "\n$(BOLD)%s$(RESET)\n", substr($$0, 5) }' $(MAKEFILE_LIST)

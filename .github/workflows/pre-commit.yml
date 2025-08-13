@@ -1,20 +1,46 @@
-# Workflow for running pre-commit checks on code
-# This workflow ensures code quality and consistency
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
+# Workflow: Pre-commit
+# Purpose: This workflow runs pre-commit checks to ensure code quality
+#          and consistency across the codebase. It helps catch issues
+#          like formatting errors, linting issues, and other code quality
+#          problems before they are merged.
+#
+# Trigger: This workflow runs on every push
+#
+# Components:
+#   - 🔍 Run pre-commit checks using reusable action
 
-name: pre-commit
+name: "PRE-COMMIT"
 
-# Trigger the workflow on push events
 on:
   push:
 
-# Set permissions to read repository contents
 permissions:
   contents: read
 
 jobs:
-  # Job to run pre-commit hooks on all files
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      # Run pre-commit checks using the cradle action
-      - uses: tschm/cradle/actions/pre-commit@v0.3.06
+      # Check out the repository code
+      - uses: actions/checkout@v5
+
+      # install uv and task
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lint
+        run: |
+          task quality:lint
+
+      - name: Format
+        run: |
+          task quality:fmt
