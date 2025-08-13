@@ -19,27 +19,23 @@ def extract_links(html_content: str) -> dict[str, list[str]]:
             The link types are 'internal', 'external', and 'image'.
 
     """
-    soup = BeautifulSoup(html_content, 'html.parser')
+    soup = BeautifulSoup(html_content, "html.parser")
 
     # Extract links from <a> tags
-    links = {
-        'internal': [],
-        'external': [],
-        'image': []
-    }
+    links = {"internal": [], "external": [], "image": []}
 
     # Extract links from <a> tags
-    for a_tag in soup.find_all('a', href=True):
-        href = a_tag['href']
-        if href.startswith(('http://', 'https://', '//')):
-            links['external'].append(href)
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag["href"]
+        if href.startswith(("http://", "https://", "//")):
+            links["external"].append(href)
         else:
-            links['internal'].append(href)
+            links["internal"].append(href)
 
     # Extract links from <img> tags
-    for img_tag in soup.find_all('img', src=True):
-        src = img_tag['src']
-        links['image'].append(src)
+    for img_tag in soup.find_all("img", src=True):
+        src = img_tag["src"]
+        links["image"].append(src)
 
     return links
 
@@ -83,16 +79,12 @@ def validate_links(html_content: str, output_dir: Path) -> tuple[bool, dict[str,
     links = extract_links(html_content)
 
     # Validate internal links
-    internal_valid, invalid_internal = validate_internal_links(links['internal'], output_dir)
+    internal_valid, invalid_internal = validate_internal_links(links["internal"], output_dir)
 
     # For now, we'll assume all external links and image links are valid
     # In a real-world scenario, you might want to check these as well
 
     all_valid = internal_valid
-    invalid_links = {
-        'internal': invalid_internal,
-        'external': set(),
-        'image': set()
-    }
+    invalid_links = {"internal": invalid_internal, "external": set(), "image": set()}
 
     return all_valid, invalid_links

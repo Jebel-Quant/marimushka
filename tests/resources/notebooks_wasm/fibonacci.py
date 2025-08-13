@@ -1,4 +1,5 @@
 """Fibonacci Calculator."""
+
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
@@ -12,6 +13,7 @@ app = marimo.App()
 
 with app.setup:
     import marimo as mo
+
 
 @app.cell
 def _():
@@ -37,6 +39,7 @@ def _():
 def _(n):
     fib = fibonacci(n.value)
     mo.md(", ".join([str(f) for f in fib]))
+
 
 @app.function
 def fibonacci(n):

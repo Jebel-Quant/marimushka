@@ -1,4 +1,5 @@
 """Tests for the help command."""
+
 import subprocess
 
 
@@ -16,6 +17,7 @@ def test_help():
     result = subprocess.run(["marimushka", "--help"], capture_output=True, text=True, check=True)
     print("Command succeeded:")
     print(result.stdout)
+
 
 def test_export_help():
     """Test the export command."""

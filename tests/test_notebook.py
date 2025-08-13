@@ -2,6 +2,7 @@
 
 This module contains tests for the Notebook class and Kind enum in the notebook.py module.
 """
+
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -49,7 +50,16 @@ class TestKind:
         # Test all three enum values
         assert Kind.NB.command == ["uvx", "marimo", "export", "html", "--sandbox"]
         assert Kind.NB_WASM.command == ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "edit"]
-        assert Kind.APP.command == ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "run", "--no-show-code"]
+        assert Kind.APP.command == [
+            "uvx",
+            "marimo",
+            "export",
+            "html-wasm",
+            "--sandbox",
+            "--mode",
+            "run",
+            "--no-show-code",
+        ]
 
 
 class TestNotebook:
@@ -61,10 +71,11 @@ class TestNotebook:
         notebook_path = resource_dir / "notebooks" / "fibonacci.py"
 
         # Create a mock path that exists and is a Python file
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'suffix', '.py'):
-
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
             # Execute
             notebook = Notebook(notebook_path)
 
@@ -77,10 +88,11 @@ class TestNotebook:
         notebook_path = resource_dir / "apps" / "charts.py"
 
         # Create a mock path that exists and is a Python file
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'suffix', '.py'):
-
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
             # Execute
             notebook = Notebook(notebook_path, kind=Kind.APP)
 
@@ -94,7 +106,7 @@ class TestNotebook:
         notebook_path = Path("nonexistent_file.py")
 
         # Mock Path.exists to return False and execute/assert
-        with patch.object(Path, 'exists', return_value=False), pytest.raises(FileNotFoundError):
+        with patch.object(Path, "exists", return_value=False), pytest.raises(FileNotFoundError):
             Notebook(notebook_path)
 
     def test_init_not_a_file(self):
@@ -103,9 +115,11 @@ class TestNotebook:
         notebook_path = Path("directory")
 
         # Mock Path.exists to return True and Path.is_file to return False, then execute/assert
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=False), \
-             pytest.raises(ValueError):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=False),
+            pytest.raises(ValueError),
+        ):
             Notebook(notebook_path)
 
     def test_init_not_python_file(self):
@@ -114,13 +128,15 @@ class TestNotebook:
         notebook_path = Path("file.txt")
 
         # Mock Path.exists and Path.is_file to return True, but set suffix to .txt, then execute/assert
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'suffix', '.txt'), \
-             pytest.raises(ValueError):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".txt"),
+            pytest.raises(ValueError),
+        ):
             Notebook(notebook_path)
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_to_wasm_success(self, mock_run, resource_dir, tmp_path):
         """Test successful export of a notebook to WebAssembly."""
         # Setup
@@ -131,9 +147,11 @@ class TestNotebook:
         mock_run.return_value = MagicMock(returncode=0)
 
         # Create a notebook with mocked path validation
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'suffix', '.py'):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
             notebook = Notebook(notebook_path, kind=Kind.NB)  # Changed to Kind.NB
 
             # Execute
@@ -149,7 +167,7 @@ class TestNotebook:
             assert "--sandbox" in cmd_args
             assert "--no-show-code" not in cmd_args
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_to_wasm_as_app(self, mock_run, resource_dir, tmp_path):
         """Test export of a notebook as an app."""
         # Setup
@@ -160,9 +178,11 @@ class TestNotebook:
         mock_run.return_value = MagicMock(returncode=0)
 
         # Create a notebook with mocked path validation
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'suffix', '.py'):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
             notebook = Notebook(notebook_path, kind=Kind.APP)
 
             # Execute
@@ -178,7 +198,7 @@ class TestNotebook:
             assert "run" in cmd_args
             assert "--no-show-code" in cmd_args
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_to_wasm_subprocess_error(self, mock_run, resource_dir, tmp_path):
         """Test handling of subprocess error during export."""
         # Setup
@@ -189,9 +209,11 @@ class TestNotebook:
         mock_run.side_effect = subprocess.CalledProcessError(1, "cmd", stderr="Error message")
 
         # Create a notebook with mocked path validation
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'suffix', '.py'):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
             notebook = Notebook(notebook_path)
 
             # Execute
@@ -200,7 +222,7 @@ class TestNotebook:
             # Assert
             assert result is False
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_to_wasm_general_exception(self, mock_run, resource_dir, tmp_path):
         """Test handling of general exception during export."""
         # Setup
@@ -211,9 +233,11 @@ class TestNotebook:
         mock_run.side_effect = Exception("Unexpected error")
 
         # Create a notebook with mocked path validation
-        with patch.object(Path, 'exists', return_value=True), \
-             patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'suffix', '.py'):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
             notebook = Notebook(notebook_path)
 
             # Execute

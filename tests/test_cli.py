@@ -1,11 +1,12 @@
 """Tests for the command line interface."""
+
 import subprocess
 from unittest.mock import patch
 
 from marimushka.export import cli, version
 
 
-@patch('marimushka.export.app')
+@patch("marimushka.export.app")
 def test_cli(mock_app):
     """Test the cli function."""
     # Execute
@@ -15,7 +16,7 @@ def test_cli(mock_app):
     mock_app.assert_called_once()
 
 
-@patch('marimushka.export.rich_print')
+@patch("marimushka.export.rich_print")
 def test_version(mock_rich_print):
     """Test the version command."""
     # Execute

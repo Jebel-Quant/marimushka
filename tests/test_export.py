@@ -30,7 +30,7 @@ class TestFolder2Notebooks:
     def test_folder2notebooks_empty_string(self):
         """Test _folder2notebooks with '' folder."""
         # Execute
-        result = folder2notebooks(folder='')
+        result = folder2notebooks(folder="")
 
         # Assert
         assert result == []
@@ -74,8 +74,8 @@ class TestFolder2Notebooks:
 class TestGenerateIndex:
     """Tests for the _generate_index function."""
 
-    @patch.object(Path, 'open', new_callable=mock_open)
-    @patch('jinja2.Environment')
+    @patch.object(Path, "open", new_callable=mock_open)
+    @patch("jinja2.Environment")
     def test_generate_index_success(self, mock_env, mock_file_open, tmp_path):
         """Test the successful generation of index.html."""
         # Setup
@@ -99,11 +99,13 @@ class TestGenerateIndex:
         mock_template.render.return_value = "<html>Rendered content</html>"
 
         # Execute
-        result = _generate_index(output=output_dir,
-                                 template_file=template_file,
-                                 notebooks=notebooks,
-                                 apps=apps,
-                                 notebooks_wasm=notebooks_wasm)
+        result = _generate_index(
+            output=output_dir,
+            template_file=template_file,
+            notebooks=notebooks,
+            apps=apps,
+            notebooks_wasm=notebooks_wasm,
+        )
 
         # Assert
         # Check that to_wasm was called for each notebook and app
@@ -121,8 +123,8 @@ class TestGenerateIndex:
         # Check that the function returns the rendered HTML
         assert result == "<html>Rendered content</html>"
 
-    @patch.object(Path, 'open', side_effect=OSError("File error"))
-    @patch('jinja2.Environment')
+    @patch.object(Path, "open", side_effect=OSError("File error"))
+    @patch("jinja2.Environment")
     def test_generate_index_file_error(self, mock_env, mock_file_open, tmp_path):
         """Test handling of file error during index generation."""
         # Setup
@@ -148,8 +150,8 @@ class TestGenerateIndex:
         # Check that the function returns the rendered HTML even if there's a file error
         assert result == "<html>Rendered content</html>"
 
-    @patch('jinja2.Environment')
-    @patch.object(Path, 'mkdir')
+    @patch("jinja2.Environment")
+    @patch.object(Path, "mkdir")
     def test_generate_index_template_error(self, mock_mkdir, mock_env, tmp_path):
         """Test handling of template error during index generation."""
         # Setup
@@ -177,8 +179,8 @@ class TestGenerateIndex:
 class TestMain:
     """Tests for the main function."""
 
-    @patch('marimushka.export.folder2notebooks')
-    @patch('marimushka.export._generate_index')
+    @patch("marimushka.export.folder2notebooks")
+    @patch("marimushka.export._generate_index")
     def test_main_success(self, mock_generate_index, mock_folder2notebooks):
         """Test successful execution of the main function."""
         # Setup
@@ -197,8 +199,8 @@ class TestMain:
         mock_folder2notebooks.assert_any_call(folder="notebooks", kind=Kind.NB_WASM)
         mock_generate_index.assert_called_once()
 
-    @patch('marimushka.export.folder2notebooks')
-    @patch('marimushka.export._generate_index')
+    @patch("marimushka.export.folder2notebooks")
+    @patch("marimushka.export._generate_index")
     def test_main_no_notebooks_or_apps(self, mock_generate_index, mock_folder2notebooks):
         """Test handling of no notebooks or apps found."""
         # Setup
@@ -214,8 +216,8 @@ class TestMain:
         mock_folder2notebooks.assert_any_call(folder="notebooks", kind=Kind.NB_WASM)
         mock_generate_index.assert_not_called()
 
-    @patch('marimushka.export.folder2notebooks')
-    @patch('marimushka.export._generate_index')
+    @patch("marimushka.export.folder2notebooks")
+    @patch("marimushka.export._generate_index")
     def test_main_custom_paths(self, mock_generate_index, mock_folder2notebooks, tmp_path):
         """Test main function with custom paths."""
         # Setup
@@ -237,7 +239,7 @@ class TestMain:
             template=custom_template,
             notebooks=custom_notebooks,
             apps=custom_apps,
-            notebooks_wasm=custom_notebooks_wasm
+            notebooks_wasm=custom_notebooks_wasm,
         )
 
         # Assert
@@ -250,5 +252,5 @@ class TestMain:
             template_file=custom_template,
             notebooks=mock_notebooks,
             apps=mock_apps,
-            notebooks_wasm=mock_notebooks_wasm
+            notebooks_wasm=mock_notebooks_wasm,
         )

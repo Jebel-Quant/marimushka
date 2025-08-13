@@ -1,4 +1,5 @@
 """Test complete marimushka build process."""
+
 from marimushka.export import main
 from tests.utils.link_validator import validate_links
 
@@ -11,13 +12,13 @@ def test_complete(resource_dir, tmp_path):
         apps=resource_dir / "apps",
         template=resource_dir / "templates" / "default.html.j2",
         output=tmp_path / "output",
-        notebooks_wasm=resource_dir / "notebooks_wasm"
+        notebooks_wasm=resource_dir / "notebooks_wasm",
     )
 
     # Write the HTML output to a file in the resources directory for later testing
     html_output_file = resource_dir / "html_output" / "complete_output.html"
-    #html_output_file.parent.mkdir(exist_ok=True)
-    #html_output_file.write_text(html_output)
+    # html_output_file.parent.mkdir(exist_ok=True)
+    # html_output_file.write_text(html_output)
 
     # Verify the file exists
     assert html_output_file.exists()
@@ -46,8 +47,8 @@ def test_no_apps(resource_dir, tmp_path):
 
     # Write the HTML output to a file in the resources directory for later testing
     html_output_file = resource_dir / "html_output" / "no_apps_output.html"
-    #html_output_file.parent.mkdir(exist_ok=True)
-    #html_output_file.write_text(html_output)
+    # html_output_file.parent.mkdir(exist_ok=True)
+    # html_output_file.write_text(html_output)
 
     # Verify the file was created successfully
     assert html_output_file.exists()

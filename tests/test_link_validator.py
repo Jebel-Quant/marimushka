@@ -11,14 +11,14 @@ class TestExtractLinks:
         html_content = ""
         links = extract_links(html_content)
 
-        assert links == {'internal': [], 'external': [], 'image': []}
+        assert links == {"internal": [], "external": [], "image": []}
 
     def test_extract_links_no_links(self):
         """Test extracting links from HTML with no links."""
         html_content = "<html><body><p>No links here</p></body></html>"
         links = extract_links(html_content)
 
-        assert links == {'internal': [], 'external': [], 'image': []}
+        assert links == {"internal": [], "external": [], "image": []}
 
     def test_extract_links_internal(self):
         """Test extracting internal links."""
@@ -32,9 +32,9 @@ class TestExtractLinks:
         """
         links = extract_links(html_content)
 
-        assert set(links['internal']) == {'notebooks/test.html', 'apps/app.html'}
-        assert links['external'] == []
-        assert links['image'] == []
+        assert set(links["internal"]) == {"notebooks/test.html", "apps/app.html"}
+        assert links["external"] == []
+        assert links["image"] == []
 
     def test_extract_links_external(self):
         """Test extracting external links."""
@@ -49,9 +49,9 @@ class TestExtractLinks:
         """
         links = extract_links(html_content)
 
-        assert links['internal'] == []
-        assert set(links['external']) == {'https://example.com', 'http://test.com', '//cdn.example.com'}
-        assert links['image'] == []
+        assert links["internal"] == []
+        assert set(links["external"]) == {"https://example.com", "http://test.com", "//cdn.example.com"}
+        assert links["image"] == []
 
     def test_extract_links_images(self):
         """Test extracting image links."""
@@ -65,9 +65,9 @@ class TestExtractLinks:
         """
         links = extract_links(html_content)
 
-        assert links['internal'] == []
-        assert links['external'] == []
-        assert set(links['image']) == {'image.jpg', 'https://example.com/image.png'}
+        assert links["internal"] == []
+        assert links["external"] == []
+        assert set(links["image"]) == {"image.jpg", "https://example.com/image.png"}
 
     def test_extract_links_mixed(self):
         """Test extracting mixed links."""
@@ -82,9 +82,9 @@ class TestExtractLinks:
         """
         links = extract_links(html_content)
 
-        assert links['internal'] == ['notebooks/test.html']
-        assert links['external'] == ['https://example.com']
-        assert links['image'] == ['image.jpg']
+        assert links["internal"] == ["notebooks/test.html"]
+        assert links["external"] == ["https://example.com"]
+        assert links["image"] == ["image.jpg"]
 
 
 class TestValidateInternalLinks:
@@ -144,7 +144,7 @@ class TestValidateLinks:
         valid, invalid = validate_links(html_content, tmp_path)
 
         assert valid is True
-        assert invalid == {'internal': set(), 'external': set(), 'image': set()}
+        assert invalid == {"internal": set(), "external": set(), "image": set()}
 
     def test_validate_links_valid(self, tmp_path):
         """Test validating links in HTML with valid links."""
@@ -166,7 +166,7 @@ class TestValidateLinks:
         valid, invalid = validate_links(html_content, tmp_path)
 
         assert valid is True
-        assert invalid == {'internal': set(), 'external': set(), 'image': set()}
+        assert invalid == {"internal": set(), "external": set(), "image": set()}
 
     def test_validate_links_invalid(self, tmp_path):
         """Test validating links in HTML with invalid links."""
@@ -180,7 +180,7 @@ class TestValidateLinks:
         valid, invalid = validate_links(html_content, tmp_path)
 
         assert valid is False
-        assert invalid == {'internal': {'notebooks/nonexistent.html'}, 'external': set(), 'image': set()}
+        assert invalid == {"internal": {"notebooks/nonexistent.html"}, "external": set(), "image": set()}
 
     def test_validate_links_mixed(self, tmp_path):
         """Test validating links in HTML with mixed valid and invalid links."""
@@ -203,4 +203,4 @@ class TestValidateLinks:
         valid, invalid = validate_links(html_content, tmp_path)
 
         assert valid is False
-        assert invalid == {'internal': {'notebooks/nonexistent.html'}, 'external': set(), 'image': set()}
+        assert invalid == {"internal": {"notebooks/nonexistent.html"}, "external": set(), "image": set()}

@@ -22,6 +22,7 @@ with app.setup:
 
     file = mo.notebook_location() / "public" / "penguins.csv"
 
+
 @app.cell(hide_code=True)
 def _():
     mo.md(
@@ -41,11 +42,13 @@ def _():
     df.head()
     return (df,)
 
+
 @app.cell
 def _():
     # Try to avoid reading the file with pandas
     _df = pd.read_csv(str(file))
     return
+
 
 @app.cell
 def _(df):
@@ -54,7 +57,7 @@ def _(df):
     ### Dataset Overview
 
     - Total records: {df.height}
-    - Columns: {', '.join(df.columns)}
+    - Columns: {", ".join(df.columns)}
 
     ### Summary Statistics
 

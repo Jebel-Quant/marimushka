@@ -1,4 +1,5 @@
 """Interactive Data Visualization."""
+
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
@@ -43,12 +44,10 @@ def _():
 
     # Create interactive chart
     chart = mo.ui.altair_chart(
-
-            alt.Chart(data)
-            .mark_circle()
-            .encode(x="x", y="y", size=alt.value(100), color=alt.value("steelblue"))
-            .properties(height=400, title="Interactive Scatter Plot")
-
+        alt.Chart(data)
+        .mark_circle()
+        .encode(x="x", y="y", size=alt.value(100), color=alt.value("steelblue"))
+        .properties(height=400, title="Interactive Scatter Plot")
     )
     chart
     return chart
