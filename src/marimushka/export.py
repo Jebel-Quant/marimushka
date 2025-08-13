@@ -26,7 +26,7 @@ import typer
 from loguru import logger
 from rich import print as rich_print
 
-from marimushka.notebook import Kind, Notebook, folder2notebooks
+from .notebook import Kind, Notebook, folder2notebooks
 
 from . import __version__
 
