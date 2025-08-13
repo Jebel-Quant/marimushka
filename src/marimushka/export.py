@@ -26,9 +26,8 @@ import typer
 from loguru import logger
 from rich import print as rich_print
 
-from .notebook import Kind, Notebook, folder2notebooks
-
 from . import __version__
+from .notebook import Kind, Notebook, folder2notebooks
 
 app = typer.Typer(help=f"Marimushka - Export marimo notebooks in style. Version: {__version__}")
 
@@ -196,7 +195,7 @@ def main(
         Directory containing WebAssembly-related files for notebooks.
         Defaults to "notebooks".
 
-    Returns
+    Returns:
     -------
     str
         The result returned by the implementation function, representing the
