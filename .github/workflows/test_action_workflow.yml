@@ -27,9 +27,9 @@ jobs:
       - name: Run action with all inputs
         uses: ./
         with:
-          notebooks: 'src/tests/resources/notebooks'
-          apps: 'src/tests/resources/apps'
-          notebooks_wasm: 'src/tests/resources/notebooks_wasm'
+          notebooks: 'tests/resources/notebooks'
+          apps: 'tests/resources/apps'
+          notebooks_wasm: 'tests/resources/notebooks_wasm'
 
       - name: Download artifact
         uses: actions/download-artifact@v5

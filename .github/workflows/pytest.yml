@@ -38,7 +38,7 @@ jobs:
       # Run pytest with coverage reporting
       - name: Run tests
         run: |
-          uv run pytest src/tests/ -v --cov=src/marimushka
+          uv run pytest tests/ -v --cov=src/marimushka
 
   # Job to test the Makefile's test target
   make:
