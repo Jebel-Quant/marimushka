@@ -2,7 +2,6 @@
 
 [![PyPI version](https://badge.fury.io/py/marimushka.svg)](https://badge.fury.io/py/marimushka)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python Tests](https://img.shields.io/github/actions/workflow/status/jebel-quant/marimushka/pytest.yml?label=tests)](https://github.com/jebel-quant/marimushka/actions/workflows/pytest.yml)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jebel-quant/marimushka/release.yml?label=release)](https://github.com/jebel-quant/marimushka/actions/workflows/release.yml)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)

@@ -2,7 +2,7 @@ template-repository: "tschm/.config-templates"
 template-branch: "main"
 include: |
     .github
-    taskfiles
+    tests
     .editorconfig
     .gitignore
     .pre-commit-config.yaml
