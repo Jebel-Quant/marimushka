@@ -1,26 +1,29 @@
-"""Pytest configuration file.
+"""Shared pytest fixtures for the test suite.
 
-This file contains fixtures and configuration for pytest.
+Provides the 'root' fixture that returns the repository root as a pathlib.Path,
+enabling tests to locate files and scripts relative to the project root.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock
+import logging
+import pathlib
 
 import pytest
 
 
-@pytest.fixture
-def mock_logger():
-    """Return a mock logger instance."""
-    return MagicMock()
+@pytest.fixture(scope="session")
+def root():
+    """Return the repository root directory as a pathlib.Path.
+
+    Used by tests to locate files and scripts relative to the project root.
+    """
+    return pathlib.Path(__file__).parent.parent
 
 
-@pytest.fixture()
-def resource_dir():
-    """Pytest fixture that provides the path to the test resources directory.
+@pytest.fixture(scope="session")
+def logger():
+    """Provide a session-scoped logger for tests.
 
     Returns:
-        Path: A Path object pointing to the resources directory within the tests folder.
-
+        logging.Logger: Logger configured for the test session.
     """
-    return Path(__file__).parent / "resources"
+    return logging.getLogger(__name__)
