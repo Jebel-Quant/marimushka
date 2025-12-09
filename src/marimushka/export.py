@@ -252,7 +252,7 @@ def _main_typer(
         "notebooks_wasm", "--notebooks-wasm", "-nw", help="Directory containing marimo notebooks"
     ),
     sandbox: bool = typer.Option(True, "--sandbox/--no-sandbox", help="Whether to run the notebook in a sandbox"),
-    bin_path: str = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
+    bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
 ) -> None:
     """Export marimo notebooks and build an HTML index page linking to them."""
     # When called through Typer, the parameters might be typer.Option objects
