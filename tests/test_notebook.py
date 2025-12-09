@@ -48,14 +48,13 @@ class TestKind:
     def test_command(self):
         """Test the command method of the Kind enum."""
         # Test all three enum values
-        assert Kind.NB.command == ["uvx", "marimo", "export", "html", "--sandbox"]
-        assert Kind.NB_WASM.command == ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "edit"]
+        assert Kind.NB.command == ["uvx", "marimo", "export", "html"]
+        assert Kind.NB_WASM.command == ["uvx", "marimo", "export", "html-wasm", "--mode", "edit"]
         assert Kind.APP.command == [
             "uvx",
             "marimo",
             "export",
             "html-wasm",
-            "--sandbox",
             "--mode",
             "run",
             "--no-show-code",
@@ -245,3 +244,32 @@ class TestNotebook:
 
             # Assert
             assert result is False
+
+    @patch("subprocess.run")
+    def test_export_no_sandbox(self, mock_run, resource_dir, tmp_path):
+        """Test export of a notebook without sandbox."""
+        # Setup
+        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        output_dir = tmp_path
+
+        # Mock successful subprocess run
+        mock_run.return_value = MagicMock(returncode=0)
+
+        # Create a notebook with mocked path validation
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path, kind=Kind.NB)
+
+            # Execute
+            result = notebook.export(output_dir, sandbox=False)
+
+            # Assert
+            assert result is True
+            mock_run.assert_called_once()
+
+            # Check that the command does NOT include --sandbox
+            cmd_args = mock_run.call_args[0][0]
+            assert "--sandbox" not in cmd_args

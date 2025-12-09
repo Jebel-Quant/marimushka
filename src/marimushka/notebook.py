@@ -56,9 +56,9 @@ class Kind(Enum):
 
         """
         commands = {
-            Kind.NB: ["uvx", "marimo", "export", "html", "--sandbox"],
-            Kind.NB_WASM: ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "edit"],
-            Kind.APP: ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "run", "--no-show-code"],
+            Kind.NB: ["uvx", "marimo", "export", "html"],
+            Kind.NB_WASM: ["uvx", "marimo", "export", "html-wasm", "--mode", "edit"],
+            Kind.APP: ["uvx", "marimo", "export", "html-wasm", "--mode", "run", "--no-show-code"],
         }
         return commands[self]
 
@@ -113,7 +113,7 @@ class Notebook:
         if not self.path.suffix == ".py":
             raise ValueError(f"File is not a Python file: {self.path}")
 
-    def export(self, output_dir: Path) -> bool:
+    def export(self, output_dir: Path, sandbox: bool = True) -> bool:
         """Export the notebook to HTML/WebAssembly format.
 
         This method exports the marimo notebook to HTML/WebAssembly format.
@@ -123,12 +123,15 @@ class Notebook:
 
         Args:
             output_dir (Path): Directory where the exported HTML file will be saved
+            sandbox (bool): Whether to run the notebook in a sandbox. Defaults to True.
 
         Returns:
             bool: True if export succeeded, False otherwise
 
         """
         cmd = self.kind.command
+        if sandbox:
+            cmd.append("--sandbox")
 
         try:
             # Create the full output path and ensure the directory exists

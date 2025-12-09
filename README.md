@@ -70,6 +70,9 @@ uvx marimushka export --output my_site
 
 # Specify custom notebook and app directories
 uvx marimushka export --notebooks path/to/notebooks --apps path/to/apps
+
+# Disable sandbox mode (use project environment)
+uvx marimushka export --no-sandbox
 ```
 
 ### Project Structure
@@ -89,14 +92,10 @@ your-project/
 
 ### Marimo Notebook Requirements
 
-All marimo notebooks used with marimushka must follow the modern `--sandbox` convention.
-This is a security feature that:
+By default, marimushka exports notebooks using the `--sandbox` flag.
+This ensures that the export process runs in an isolated environment, which is safer and ensures that your notebook's dependencies are correctly defined in the notebook itself (e.g. using `/// script` metadata).
 
-- Restricts the notebook's access to the system
-- Prevents potentially harmful code execution
-- Creates an isolated environment for the notebook
-
-When developing or testing notebooks locally, always use the `--sandbox` flag:
+When developing or testing notebooks locally, it is good practice to use the `--sandbox` flag:
 
 ```bash
 # Running a notebook with the sandbox flag
@@ -106,8 +105,11 @@ marimo run your_notebook.py --sandbox
 uvx marimo run your_notebook.py --sandbox
 ```
 
-Marimushka automatically applies the `--sandbox` flag when exporting notebooks,
-but it's important to ensure your notebooks are designed to work within these constraints.
+If you need to export notebooks that rely on the local environment (e.g. packages installed in the current venv but not declared in the notebook), you can disable the sandbox:
+
+```bash
+uvx marimushka export --no-sandbox
+```
 
 ### GitHub Action
 
