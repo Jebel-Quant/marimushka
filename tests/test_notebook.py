@@ -48,14 +48,12 @@ class TestKind:
     def test_command(self):
         """Test the command method of the Kind enum."""
         # Test all three enum values
-        assert Kind.NB.command == ["uvx", "marimo", "export", "html", "--sandbox"]
-        assert Kind.NB_WASM.command == ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "edit"]
+        assert Kind.NB.command == ["marimo", "export", "html"]
+        assert Kind.NB_WASM.command == ["marimo", "export", "html-wasm", "--mode", "edit"]
         assert Kind.APP.command == [
-            "uvx",
             "marimo",
             "export",
             "html-wasm",
-            "--sandbox",
             "--mode",
             "run",
             "--no-show-code",
@@ -242,6 +240,95 @@ class TestNotebook:
 
             # Execute
             result = notebook.export(output_dir)
+
+            # Assert
+            assert result is False
+
+    @patch("subprocess.run")
+    def test_export_no_sandbox(self, mock_run, resource_dir, tmp_path):
+        """Test export of a notebook without sandbox."""
+        # Setup
+        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        output_dir = tmp_path
+
+        # Mock successful subprocess run
+        mock_run.return_value = MagicMock(returncode=0)
+
+        # Create a notebook with mocked path validation
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path, kind=Kind.NB)
+
+            # Execute
+            result = notebook.export(output_dir, sandbox=False)
+
+            # Assert
+            assert result is True
+            mock_run.assert_called_once()
+
+            # Check that the command does NOT include --sandbox
+            cmd_args = mock_run.call_args[0][0]
+            assert "--sandbox" not in cmd_args
+
+    @patch("shutil.which")
+    @patch("subprocess.run")
+    def test_export_bin_path(self, mock_run, mock_which, resource_dir, tmp_path):
+        """Test export of a notebook with a bin path."""
+        # Setup
+        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        output_dir = tmp_path
+        bin_path = Path("/custom/bin")
+        executable = "uvx"
+
+        # Mock successful subprocess run
+        mock_run.return_value = MagicMock(returncode=0)
+        # Mock shutil.which to return the path
+        mock_which.return_value = str(bin_path / executable)
+
+        # Create a notebook with mocked path validation
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path, kind=Kind.NB)
+
+            # Execute
+            result = notebook.export(output_dir, bin_path=bin_path)
+
+            # Assert
+            assert result is True
+            mock_run.assert_called_once()
+
+            # Check that the command starts with the combined path
+            cmd_args = mock_run.call_args[0][0]
+            # shutil.which returns the full path, so we check if it ends with the executable name
+            assert cmd_args[0].endswith(executable)
+
+    @patch("shutil.which")
+    def test_export_bin_path_not_found(self, mock_which, resource_dir, tmp_path):
+        """Test export of a notebook when bin path executable is not found."""
+        # Setup
+        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        output_dir = tmp_path
+        bin_path = Path("/invalid/bin")
+
+        # Mock shutil.which to return None
+        mock_which.return_value = None
+
+        # Create a notebook with mocked path validation
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path, kind=Kind.NB)
+
+            # Execute
+            result = notebook.export(output_dir, bin_path=bin_path)
 
             # Assert
             assert result is False

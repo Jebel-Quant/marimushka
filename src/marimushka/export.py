@@ -58,6 +58,8 @@ def _generate_index(
     notebooks: list[Notebook] | None = None,
     apps: list[Notebook] | None = None,
     notebooks_wasm: list[Notebook] | None = None,
+    sandbox: bool = True,
+    bin_path: Path | None = None,
 ) -> str:
     """Generate an index.html file that lists all the notebooks.
 
@@ -72,6 +74,8 @@ def _generate_index(
         notebooks_wasm (List[Notebook]): List of notebooks with data for notebooks_wasm
         output (Path): Directory where the index.html file will be saved
         template_file (Path, optional): Path to the template file. If None, uses the default template.
+        sandbox (bool): Whether to run the notebook in a sandbox. Defaults to True.
+        bin_path (Path | None): The directory where the executable is located. Defaults to None.
 
     Returns:
         str: The rendered HTML content as a string
@@ -84,14 +88,14 @@ def _generate_index(
 
     # Export notebooks to WebAssembly
     for nb in notebooks:
-        nb.export(output_dir=output / "notebooks")
+        nb.export(output_dir=output / "notebooks", sandbox=sandbox, bin_path=bin_path)
 
     # Export apps to WebAssembly
     for nb in apps:
-        nb.export(output_dir=output / "apps")
+        nb.export(output_dir=output / "apps", sandbox=sandbox, bin_path=bin_path)
 
     for nb in notebooks_wasm:
-        nb.export(output_dir=output / "notebooks_wasm")
+        nb.export(output_dir=output / "notebooks_wasm", sandbox=sandbox, bin_path=bin_path)
 
     # Create the full path for the index.html file
     index_path: Path = Path(output) / "index.html"
@@ -132,7 +136,13 @@ def _generate_index(
 
 
 def _main_impl(
-    output: str | Path, template: str | Path, notebooks: str | Path, apps: str | Path, notebooks_wasm: str | Path
+    output: str | Path,
+    template: str | Path,
+    notebooks: str | Path,
+    apps: str | Path,
+    notebooks_wasm: str | Path,
+    sandbox: bool = True,
+    bin_path: str | Path | None = None,
 ) -> str:
     """Implement the main function.
 
@@ -156,6 +166,11 @@ def _main_impl(
     logger.info(f"Notebooks: {notebooks}")
     logger.info(f"Apps: {apps}")
     logger.info(f"Notebooks-wasm: {notebooks_wasm}")
+    logger.info(f"Sandbox: {sandbox}")
+    logger.info(f"Bin path: {bin_path}")
+
+    # Convert bin_path to Path if provided
+    bin_path_obj: Path | None = Path(bin_path) if bin_path else None
 
     notebooks_data = folder2notebooks(folder=notebooks, kind=Kind.NB)
     apps_data = folder2notebooks(folder=apps, kind=Kind.APP)
@@ -176,6 +191,8 @@ def _main_impl(
         notebooks=notebooks_data,
         apps=apps_data,
         notebooks_wasm=notebooks_wasm_data,
+        sandbox=sandbox,
+        bin_path=bin_path_obj,
     )
 
 
@@ -185,6 +202,8 @@ def main(
     notebooks: str | Path = "notebooks",
     apps: str | Path = "apps",
     notebooks_wasm: str | Path = "notebooks",
+    sandbox: bool = True,
+    bin_path: str | Path | None = None,
 ) -> str:
     """Call the implementation function with the provided parameters and return its result.
 
@@ -204,6 +223,10 @@ def main(
     notebooks_wasm: str | Path
         Directory containing WebAssembly-related files for notebooks.
         Defaults to "notebooks".
+    sandbox: bool
+        Whether to run the notebook in a sandbox. Defaults to True.
+    bin_path: str | Path | None
+        The directory where the executable is located. Defaults to None.
 
     Returns:
     -------
@@ -213,7 +236,15 @@ def main(
 
     """
     # Call the implementation function with the provided parameters and return its result
-    return _main_impl(output=output, template=template, notebooks=notebooks, apps=apps, notebooks_wasm=notebooks_wasm)
+    return _main_impl(
+        output=output,
+        template=template,
+        notebooks=notebooks,
+        apps=apps,
+        notebooks_wasm=notebooks_wasm,
+        sandbox=sandbox,
+        bin_path=bin_path,
+    )
 
 
 @app.command(name="export")
@@ -230,6 +261,8 @@ def _main_typer(
     notebooks_wasm: str = typer.Option(
         "notebooks_wasm", "--notebooks-wasm", "-nw", help="Directory containing marimo notebooks"
     ),
+    sandbox: bool = typer.Option(True, "--sandbox/--no-sandbox", help="Whether to run the notebook in a sandbox"),
+    bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
 ) -> None:
     """Export marimo notebooks and build an HTML index page linking to them."""
     # When called through Typer, the parameters might be typer.Option objects
@@ -239,6 +272,8 @@ def _main_typer(
     notebooks_val = getattr(notebooks, "default", notebooks)
     apps_val = getattr(apps, "default", apps)
     notebooks_wasm_val = getattr(notebooks_wasm, "default", notebooks_wasm)
+    sandbox_val = getattr(sandbox, "default", sandbox)
+    bin_path_val = getattr(bin_path, "default", bin_path)
 
     # Call the main function with the resolved parameter values
     main(
@@ -247,6 +282,8 @@ def _main_typer(
         notebooks=notebooks_val,
         apps=apps_val,
         notebooks_wasm=notebooks_wasm_val,
+        sandbox=sandbox_val,
+        bin_path=bin_path_val,
     )
 
 

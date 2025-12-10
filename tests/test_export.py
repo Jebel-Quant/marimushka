@@ -109,9 +109,9 @@ class TestGenerateIndex:
 
         # Assert
         # Check that to_wasm was called for each notebook and app
-        mock_notebook1.export.assert_called_once_with(output_dir=output_dir / "notebooks")
-        mock_notebook2.export.assert_called_once_with(output_dir=output_dir / "notebooks")
-        mock_app1.export.assert_called_once_with(output_dir=output_dir / "apps")
+        mock_notebook1.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
+        mock_notebook2.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
+        mock_app1.export.assert_called_once_with(output_dir=output_dir / "apps", sandbox=True, bin_path=None)
 
         # Check that the template was rendered and written to file
         mock_env.assert_called_once()
@@ -145,7 +145,7 @@ class TestGenerateIndex:
         result = _generate_index(output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps)
 
         # Check that to_wasm was still called
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks")
+        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
 
         # Check that the function returns the rendered HTML even if there's a file error
         assert result == "<html>Rendered content</html>"
@@ -170,7 +170,7 @@ class TestGenerateIndex:
         result = _generate_index(output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps)
 
         # Check that to_wasm was still called
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks")
+        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
 
         # Check that the function returns an empty string when there's a template error
         assert result == ""
@@ -253,4 +253,6 @@ class TestMain:
             notebooks=mock_notebooks,
             apps=mock_apps,
             notebooks_wasm=mock_notebooks_wasm,
+            sandbox=True,
+            bin_path=None,
         )

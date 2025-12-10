@@ -4,6 +4,7 @@ This module provides the Notebook class for representing and exporting marimo no
 """
 
 import dataclasses
+import shutil
 import subprocess
 from enum import Enum
 from pathlib import Path
@@ -56,9 +57,9 @@ class Kind(Enum):
 
         """
         commands = {
-            Kind.NB: ["uvx", "marimo", "export", "html", "--sandbox"],
-            Kind.NB_WASM: ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "edit"],
-            Kind.APP: ["uvx", "marimo", "export", "html-wasm", "--sandbox", "--mode", "run", "--no-show-code"],
+            Kind.NB: ["marimo", "export", "html"],
+            Kind.NB_WASM: ["marimo", "export", "html-wasm", "--mode", "edit"],
+            Kind.APP: ["marimo", "export", "html-wasm", "--mode", "run", "--no-show-code"],
         }
         return commands[self]
 
@@ -113,7 +114,7 @@ class Notebook:
         if not self.path.suffix == ".py":
             raise ValueError(f"File is not a Python file: {self.path}")
 
-    def export(self, output_dir: Path) -> bool:
+    def export(self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None) -> bool:
         """Export the notebook to HTML/WebAssembly format.
 
         This method exports the marimo notebook to HTML/WebAssembly format.
@@ -123,12 +124,27 @@ class Notebook:
 
         Args:
             output_dir (Path): Directory where the exported HTML file will be saved
+            sandbox (bool): Whether to run the notebook in a sandbox. Defaults to True.
+            bin_path (Path | None): The directory where the executable is located. Defaults to None.
 
         Returns:
             bool: True if export succeeded, False otherwise
 
         """
-        cmd = self.kind.command
+        executable = "uvx"
+        if bin_path:
+            # Use shutil.which to find the executable in the specified directory
+            # This handles platform-specific extensions (like .exe on Windows)
+            exe = shutil.which(executable, path=str(bin_path))
+            if not exe:
+                logger.error(f"Could not find {executable} in {bin_path}")
+                return False
+        else:
+            exe = executable
+
+        cmd = [exe, *self.kind.command]
+        if sandbox:
+            cmd.append("--sandbox")
 
         try:
             # Create the full output path and ensure the directory exists
