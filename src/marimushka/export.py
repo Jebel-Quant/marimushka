@@ -19,6 +19,7 @@ The exported files will be placed in the specified output directory (default: _s
 # ]
 # ///
 
+import sys
 from pathlib import Path
 
 import jinja2
@@ -28,6 +29,15 @@ from rich import print as rich_print
 
 from . import __version__
 from .notebook import Kind, Notebook, folder2notebooks
+
+# Configure logger
+logger.configure(extra={"subprocess": ""})
+logger.remove()
+logger.add(
+    sys.stderr,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:"
+    "<cyan>{function}</cyan>:<cyan>{line}</cyan> | <magenta>{extra[subprocess]}</magenta><level>{message}</level>",
+)
 
 app = typer.Typer(help=f"Marimushka - Export marimo notebooks in style. Version: {__version__}")
 

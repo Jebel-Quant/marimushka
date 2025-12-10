@@ -140,13 +140,21 @@ class Notebook:
 
             # Run marimo export command
             logger.debug(f"Running command: {cmd}")
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            nb_logger = logger.bind(subprocess=f"[{self.path.name}] ")
+
+            if result.stdout:
+                nb_logger.info(f"stdout:\n{result.stdout.strip()}")
+
+            if result.stderr:
+                nb_logger.warning(f"stderr:\n{result.stderr.strip()}")
+
+            if result.returncode != 0:
+                nb_logger.error(f"Error exporting {self.path}")
+                return False
+
             return True
-        except subprocess.CalledProcessError as e:
-            # Handle marimo export errors
-            logger.error(f"Error exporting {self.path}:")
-            logger.error(f"Command output: {e.stderr}")
-            return False
         except Exception as e:
             # Handle unexpected errors
             logger.error(f"Unexpected error exporting {self.path}: {e}")
