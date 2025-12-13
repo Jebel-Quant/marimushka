@@ -145,6 +145,8 @@ class Notebook:
         cmd = [exe, *self.kind.command]
         if sandbox:
             cmd.append("--sandbox")
+        else:
+            cmd.append("--no-sandbox")
 
         try:
             # Create the full output path and ensure the directory exists
