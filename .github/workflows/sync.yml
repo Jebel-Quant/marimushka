@@ -1,3 +1,6 @@
+# This file is part of the jebel-quant/rhiza repository
+# (https://github.com/jebel-quant/rhiza).
+#
 # Workflow: Sync
 #
 # Purpose: This workflow synchronizes configuration files from the template
@@ -24,7 +27,7 @@ on:
 
 jobs:
   sync:
-    if: ${{ github.repository != 'tschm/.config-templates' }}
+    if: ${{ github.repository != 'jebel-quant/rhiza' }}
     runs-on: ubuntu-latest
     steps:
       - name: Sync Template

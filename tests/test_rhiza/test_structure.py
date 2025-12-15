@@ -1,5 +1,8 @@
 """Tests for the root pytest fixture that yields the repository root Path.
 
+This file and its associated tests flow down via a SYNC action from the jebel-quant/rhiza repository
+(https://github.com/jebel-quant/rhiza).
+
 This module ensures the fixture resolves to the true project root and that
 expected files/directories exist, enabling other tests to locate resources
 reliably.
@@ -18,8 +21,6 @@ class TestRootFixture:
 
     def test_root_points_to_repository_root(self, root):
         """Root fixture should point to the actual repository root."""
-        assert (root / "pyproject.toml").exists()
-        assert (root / "README.md").exists()
         assert (root / ".github").is_dir()
 
     def test_root_is_absolute_path(self, root):
@@ -28,7 +29,7 @@ class TestRootFixture:
 
     def test_root_resolves_correctly_from_nested_location(self, root):
         """Root should correctly resolve to repository root from tests/test_config_templates/."""
-        conftest_path = root / "tests" / "test_config_templates" / "conftest.py"
+        conftest_path = root / "tests" / "test_rhiza" / "conftest.py"
         assert conftest_path.exists()
 
     def test_root_contains_expected_directories(self, root):

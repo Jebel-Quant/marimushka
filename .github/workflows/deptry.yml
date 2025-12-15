@@ -1,3 +1,6 @@
+# This file is part of the jebel-quant/rhiza repository
+# (https://github.com/jebel-quant/rhiza).
+#
 # Workflow: Deptry
 #
 # Purpose: This workflow identifies missing and obsolete dependencies in the project.
