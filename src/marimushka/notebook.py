@@ -142,7 +142,7 @@ class Notebook:
                 # Fallback: try constructing the path directly
                 # This handles cases where shutil.which doesn't work with a single directory
                 exe_path = bin_path / executable
-                if exe_path.exists() and exe_path.is_file() and os.access(exe_path, os.X_OK):
+                if exe_path.is_file() and os.access(exe_path, os.X_OK):
                     exe = str(exe_path)
                 else:
                     logger.error(f"Could not find {executable} in {bin_path}")
