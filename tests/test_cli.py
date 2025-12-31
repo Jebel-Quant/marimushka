@@ -1,5 +1,6 @@
 """Tests for the command line interface."""
 
+import shutil
 import subprocess
 from unittest.mock import patch
 
@@ -28,7 +29,12 @@ def test_version(mock_rich_print):
 
 def test_export_run():
     """Test the export command."""
+    # Resolve the full path to the marimushka executable
+    marimushka_path = shutil.which("marimushka")
+    if not marimushka_path:
+        raise RuntimeError("marimushka executable not found in PATH")
+    
     # Run the command and capture the output
-    result = subprocess.run(["marimushka", "export"], capture_output=True, text=True, check=True)
+    result = subprocess.run([marimushka_path, "export"], capture_output=True, text=True, check=True)
     print("Command succeeded:")
     print(result.stdout)
