@@ -4,6 +4,7 @@ This module provides the Notebook class for representing and exporting marimo no
 """
 
 import dataclasses
+import os
 import shutil
 import subprocess
 from enum import Enum
@@ -133,12 +134,19 @@ class Notebook:
         """
         executable = "uvx"
         if bin_path:
-            # Use shutil.which to find the executable in the specified directory
-            # This handles platform-specific extensions (like .exe on Windows)
+            # Construct the full executable path
+            # Use shutil.which to find it with platform-specific extensions (like .exe on Windows)
+            # by passing the full path as the command and using the bin_path in the PATH
             exe = shutil.which(executable, path=str(bin_path))
             if not exe:
-                logger.error(f"Could not find {executable} in {bin_path}")
-                return False
+                # Fallback: try constructing the path directly
+                # This handles cases where shutil.which doesn't work with a single directory
+                exe_path = bin_path / executable
+                if exe_path.is_file() and os.access(exe_path, os.X_OK):
+                    exe = str(exe_path)
+                else:
+                    logger.error(f"Could not find {executable} in {bin_path}")
+                    return False
         else:
             exe = executable
 
