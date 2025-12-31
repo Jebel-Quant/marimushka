@@ -311,9 +311,7 @@ class TestNotebook:
     @patch("os.access")
     @patch("shutil.which")
     @patch("subprocess.run")
-    def test_export_bin_path_fallback_success(
-        self, mock_run, mock_which, mock_access, resource_dir, tmp_path
-    ):
+    def test_export_bin_path_fallback_success(self, mock_run, mock_which, mock_access, resource_dir, tmp_path):
         """Test export of a notebook with fallback when shutil.which fails."""
         # Setup
         notebook_path = resource_dir / "notebooks" / "fibonacci.py"

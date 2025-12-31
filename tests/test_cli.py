@@ -33,7 +33,7 @@ def test_export_run():
     marimushka_path = shutil.which("marimushka")
     if not marimushka_path:
         raise RuntimeError("marimushka executable not found in PATH")
-    
+
     # Run the command and capture the output
     result = subprocess.run([marimushka_path, "export"], capture_output=True, text=True, check=True)
     print("Command succeeded:")

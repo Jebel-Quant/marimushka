@@ -10,7 +10,7 @@ def test_no_args():
     marimushka_path = shutil.which("marimushka")
     if not marimushka_path:
         raise RuntimeError("marimushka executable not found in PATH")
-    
+
     # Run the command and capture the output
     result = subprocess.run([marimushka_path], capture_output=True, text=True, check=True)
     print("Command succeeded:")
@@ -23,7 +23,7 @@ def test_help():
     marimushka_path = shutil.which("marimushka")
     if not marimushka_path:
         raise RuntimeError("marimushka executable not found in PATH")
-    
+
     # Run the command and capture the output
     result = subprocess.run([marimushka_path, "--help"], capture_output=True, text=True, check=True)
     print("Command succeeded:")
@@ -36,7 +36,7 @@ def test_export_help():
     marimushka_path = shutil.which("marimushka")
     if not marimushka_path:
         raise RuntimeError("marimushka executable not found in PATH")
-    
+
     # Run the command and capture the output
     result = subprocess.run([marimushka_path, "export", "--help"], capture_output=True, text=True, check=True)
     print("Command succeeded:")
