@@ -139,7 +139,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Export marimo notebooks
-        uses: jebel-quant/marimushka@v0.0.26
+        uses: jebel-quant/marimushka@v0.2.1
         with:
           template: 'path/to/template.html.j2'  # Optional: custom template
           notebooks: 'notebooks'                # Optional: notebooks directory
@@ -177,7 +177,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Export marimo notebooks
-        uses: jebel-quant/marimushka@0.0.26
+        uses: jebel-quant/marimushka@0.2.1
         with:
           notebooks: 'notebooks'
           apps: 'apps'
