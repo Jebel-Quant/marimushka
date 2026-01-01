@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import jinja2
 import pytest
+import typer
 
 from marimushka.export import _generate_index, main
 from marimushka.notebook import Kind, folder2notebooks
@@ -265,10 +266,6 @@ class TestCallback:
     @patch("builtins.print")
     def test_callback_without_command(self, mock_print):
         """Test callback function when no command is provided."""
-        from unittest.mock import MagicMock
-
-        import typer
-
         from marimushka.export import callback
 
         # Setup - create a mock context with no subcommand
@@ -286,10 +283,6 @@ class TestCallback:
 
     def test_callback_with_command(self):
         """Test callback function when a command is provided."""
-        from unittest.mock import MagicMock
-
-        import typer
-
         from marimushka.export import callback
 
         # Setup - create a mock context with a subcommand
@@ -309,10 +302,6 @@ class TestMainTyper:
     @patch("marimushka.export.main")
     def test_main_typer_with_option_objects(self, mock_main):
         """Test _main_typer function with typer.Option objects."""
-        from unittest.mock import MagicMock
-
-        import typer
-
         from marimushka.export import _main_typer
 
         # Setup - create mock Option objects with default attributes
