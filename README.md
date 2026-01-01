@@ -1,3 +1,5 @@
+<div align="center">
+  
 # <img src="https://raw.githubusercontent.com/Jebel-Quant/rhiza/main/assets/rhiza-logo.svg" alt="Rhiza Logo" width="30"> marimushka
 ![Synced with Rhiza](https://img.shields.io/badge/synced%20with-rhiza-2FA4A9?color=2FA4A9)
 
@@ -10,6 +12,11 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://jebel-quant.github.io/marimushka/tests/coverage-badge.json)](https://jebel-quant.github.io/marimushka/tests/html-coverage/index.html)
 [![Downloads](https://static.pepy.tech/personalized-badge/marimushka?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/marimushka)
 [![GitHub stars](https://img.shields.io/github/stars/jebel-quant/marimushka)](https://github.com/jebel-quant/marimushka/stargazers)
+
+Export [marimo](https://marimo.io) notebooks in style.
+
+</div>
+
 
 ## 🚀 Overview
 
