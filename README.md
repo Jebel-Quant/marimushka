@@ -93,8 +93,7 @@ to inject alternative locations
 
 ```bash
 your-project/
-├── notebooks/       # Static marimo notebooks (.py files)
-├── notebooks_wasm/  # Interactive marimo notebooks (.py files)
+├── notebooks/       # Marimo notebooks (.py files) - used for both static and interactive exports
 ├── apps/            # Marimo applications (.py files)
 └── templates/       # Optional: Custom templates for export
     └── custom.html.j2   # Default template location
@@ -139,7 +138,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Export marimo notebooks
-        uses: jebel-quant/marimushka@v0.0.26
+        uses: jebel-quant/marimushka@v0.2.1
         with:
           template: 'path/to/template.html.j2'  # Optional: custom template
           notebooks: 'notebooks'                # Optional: notebooks directory
@@ -177,7 +176,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Export marimo notebooks
-        uses: jebel-quant/marimushka@0.0.26
+        uses: jebel-quant/marimushka@v0.2.1
         with:
           notebooks: 'notebooks'
           apps: 'apps'
