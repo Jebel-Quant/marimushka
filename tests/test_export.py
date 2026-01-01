@@ -11,6 +11,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import jinja2
+import pytest
+import typer
 
 from marimushka.export import _generate_index, main
 from marimushka.notebook import Kind, folder2notebooks
@@ -255,4 +257,120 @@ class TestMain:
             notebooks_wasm=mock_notebooks_wasm,
             sandbox=True,
             bin_path=None,
+        )
+
+
+class TestCallback:
+    """Tests for the callback function."""
+
+    @patch("builtins.print")
+    def test_callback_without_command(self, mock_print):
+        """Test callback function when no command is provided."""
+        from marimushka.export import callback
+
+        # Setup - create a mock context with no subcommand
+        mock_ctx = MagicMock(spec=typer.Context)
+        mock_ctx.invoked_subcommand = None
+        mock_ctx.get_help.return_value = "Help text"
+
+        # Execute and Assert - should raise typer.Exit
+        with pytest.raises(typer.Exit):
+            callback(mock_ctx)
+
+        # Verify that help was printed
+        mock_print.assert_called_once_with("Help text")
+        mock_ctx.get_help.assert_called_once()
+
+    def test_callback_with_command(self):
+        """Test callback function when a command is provided."""
+        from marimushka.export import callback
+
+        # Setup - create a mock context with a subcommand
+        mock_ctx = MagicMock(spec=typer.Context)
+        mock_ctx.invoked_subcommand = "export"
+
+        # Execute - should not raise any exception
+        callback(mock_ctx)
+
+        # Verify that help was not requested
+        mock_ctx.get_help.assert_not_called()
+
+
+class TestMainTyper:
+    """Tests for the _main_typer function."""
+
+    @patch("marimushka.export.main")
+    def test_main_typer_with_option_objects(self, mock_main):
+        """Test _main_typer function with typer.Option objects."""
+        from marimushka.export import _main_typer
+
+        # Setup - create mock Option objects with default attributes
+        mock_output = MagicMock()
+        mock_output.default = "custom_site"
+
+        mock_template = MagicMock()
+        mock_template.default = "custom_template.html"
+
+        mock_notebooks = MagicMock()
+        mock_notebooks.default = "custom_notebooks"
+
+        mock_apps = MagicMock()
+        mock_apps.default = "custom_apps"
+
+        mock_notebooks_wasm = MagicMock()
+        mock_notebooks_wasm.default = "custom_notebooks_wasm"
+
+        mock_sandbox = MagicMock()
+        mock_sandbox.default = False
+
+        mock_bin_path = MagicMock()
+        mock_bin_path.default = "/custom/bin"
+
+        # Execute
+        _main_typer(
+            output=mock_output,
+            template=mock_template,
+            notebooks=mock_notebooks,
+            apps=mock_apps,
+            notebooks_wasm=mock_notebooks_wasm,
+            sandbox=mock_sandbox,
+            bin_path=mock_bin_path,
+        )
+
+        # Assert - verify that main was called with the default values
+        mock_main.assert_called_once_with(
+            output="custom_site",
+            template="custom_template.html",
+            notebooks="custom_notebooks",
+            apps="custom_apps",
+            notebooks_wasm="custom_notebooks_wasm",
+            sandbox=False,
+            bin_path="/custom/bin",
+        )
+
+    @patch("marimushka.export.main")
+    def test_main_typer_with_string_values(self, mock_main):
+        """Test _main_typer function with string values (not Option objects)."""
+        from marimushka.export import _main_typer
+
+        # Execute with regular string values
+        _main_typer(
+            output="output_dir",
+            template="template.html",
+            notebooks="notebooks",
+            apps="apps",
+            notebooks_wasm="notebooks_wasm",
+            sandbox=True,
+            bin_path="/bin",
+        )
+
+        # Assert - verify that main was called with the same values
+        mock_main.assert_called_once_with(
+            output="output_dir",
+            template="template.html",
+            notebooks="notebooks",
+            apps="apps",
+            notebooks_wasm="notebooks_wasm",
+            sandbox=True,
+            bin_path="/bin",
         )
