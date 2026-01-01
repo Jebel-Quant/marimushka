@@ -259,7 +259,7 @@ def _main_typer(
     notebooks: str = typer.Option("notebooks", "--notebooks", "-n", help="Directory containing marimo notebooks"),
     apps: str = typer.Option("apps", "--apps", "-a", help="Directory containing marimo apps"),
     notebooks_wasm: str = typer.Option(
-        "notebooks_wasm", "--notebooks-wasm", "-nw", help="Directory containing marimo notebooks"
+        "notebooks", "--notebooks-wasm", "-nw", help="Directory containing marimo notebooks (interactive WebAssembly)"
     ),
     sandbox: bool = typer.Option(True, "--sandbox/--no-sandbox", help="Whether to run the notebook in a sandbox"),
     bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
