@@ -1,11 +1,11 @@
-# 📦 marimushka
+# <img src="https://raw.githubusercontent.com/Jebel-Quant/rhiza/main/assets/rhiza-logo.svg" alt="Rhiza Logo" width="30"> marimushka
+![Synced with Rhiza](https://img.shields.io/badge/synced%20with-rhiza-2FA4A9?color=2FA4A9)
 
-[![PyPI version](https://badge.fury.io/py/marimushka.svg)](https://badge.fury.io/py/marimushka)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/marimushka.svg)](https://pypi.org/project/marimushka/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jebel-quant/marimushka/rhiza_release.yml?label=release)](https://github.com/jebel-quant/marimushka/actions/workflows/rhiza_release.yml)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Created with qCradle](https://img.shields.io/badge/Created%20with-qCradle-blue?style=flat-square)](https://github.com/tschm/package)
 [![CodeFactor](https://www.codefactor.io/repository/github/jebel-quant/marimushka/badge)](https://www.codefactor.io/repository/github/jebel-quant/marimushka)
 [![GitHub stars](https://img.shields.io/github/stars/jebel-quant/marimushka)](https://github.com/jebel-quant/marimushka/stargazers)
 
