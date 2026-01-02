@@ -12,13 +12,13 @@ dependencies = [
     "rich==14.2.0"
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=9.0.0",
-    "pytest-html>=4.0",
-    "pytest-cov>=7.0",
     "beautifulsoup4>=4.12.0",
-    "python-dotenv==1.2.1"	
+    "numpy>=2.4",
+    "marimo>=0.18",
+    "plotly>=6.5",
+    "pandas>=2.4"
 ]
 
 [project.urls]
@@ -41,7 +41,3 @@ include = [
     "README.md",
     "src/marimushka"
 ]
-
-[tool.deptry]
-# see https://deptry.com/usage/#pep-621-dev-dependency-groups
-pep621_dev_dependency_groups = ["dev"]
