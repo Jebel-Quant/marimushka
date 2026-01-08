@@ -166,6 +166,8 @@ class TestReadmeBashFragments:
         # We're just validating that help commands exist and have proper format
         # We don't actually execute them as they may require specific tools
         for cmd in help_commands:
-            # Basic validation: should have at least a command and --help/--h
+            # Basic validation: should have at least a command and a help flag
             parts = cmd.split()
             assert len(parts) >= 1, f"Command '{cmd}' should have at least one word"
+            # Verify help flag is present
+            assert "--help" in cmd or "-h" in cmd, f"Command '{cmd}' should contain --help or -h flag"
