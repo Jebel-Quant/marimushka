@@ -1,6 +1,6 @@
 [project]
 name = 'marimushka'
-version = "0.2.2"
+version = "0.2.3"
 description = "Export marimo notebooks in style"
 authors = [{name='Jebel Quant LLC', email= 'contact@jqr.ae'}]
 readme = "README.md"
