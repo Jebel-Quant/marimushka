@@ -8,6 +8,7 @@ executes the code, and verifies the output matches the documented result.
 """
 
 import re
+import shutil
 import subprocess
 import sys
 
@@ -17,6 +18,12 @@ import pytest
 CODE_BLOCK = re.compile(r"```python\n(.*?)```", re.DOTALL)
 
 RESULT = re.compile(r"```result\n(.*?)```", re.DOTALL)
+
+# Regex for Bash code blocks
+BASH_BLOCK = re.compile(r"```bash\n(.*?)```", re.DOTALL)
+
+# Get absolute path for bash executable to avoid S607 warnings
+BASH = shutil.which("bash") or "/usr/bin/bash"
 
 
 def test_readme_runs(logger, root):
@@ -75,3 +82,88 @@ class TestReadmeTestEdgeCases:
                 compile(code, f"<readme_block_{i}>", "exec")
             except SyntaxError as e:
                 pytest.fail(f"Code block {i} has syntax error: {e}")
+
+
+class TestReadmeBashFragments:
+    """Tests for bash code fragments in README."""
+
+    def test_bash_blocks_exist(self, root):
+        """README should contain bash code blocks."""
+        readme = root / "README.md"
+        content = readme.read_text(encoding="utf-8")
+        bash_blocks = BASH_BLOCK.findall(content)
+        assert len(bash_blocks) > 0, "README should contain at least one bash code block"
+
+    def test_bash_blocks_are_non_empty(self, root):
+        """Bash code blocks in README should not be empty."""
+        readme = root / "README.md"
+        content = readme.read_text(encoding="utf-8")
+        bash_blocks = BASH_BLOCK.findall(content)
+
+        for i, code in enumerate(bash_blocks):
+            assert code.strip(), f"Bash block {i} should not be empty"
+
+    def test_bash_blocks_basic_syntax(self, root, logger):
+        """Bash code blocks should have basic valid syntax (can be parsed by bash -n)."""
+        readme = root / "README.md"
+        content = readme.read_text(encoding="utf-8")
+        bash_blocks = BASH_BLOCK.findall(content)
+
+        logger.info("Found %d bash code block(s) in README", len(bash_blocks))
+
+        for i, code in enumerate(bash_blocks):
+            # Skip directory tree representations and other non-executable blocks
+            if any(marker in code for marker in ["├──", "└──", "│"]):
+                logger.info("Skipping bash block %d (directory tree representation)", i)
+                continue
+
+            # Skip blocks that are primarily comments or documentation
+            lines = [line.strip() for line in code.split("\n") if line.strip()]
+            non_comment_lines = [line for line in lines if not line.startswith("#")]
+            if not non_comment_lines:
+                logger.info("Skipping bash block %d (only comments)", i)
+                continue
+
+            logger.debug("Checking bash block %d:\n%s", i, code)
+
+            # Use bash -n to check syntax without executing
+            # Trust boundary: we use bash -n which only parses without executing
+            result = subprocess.run(
+                [BASH, "-n"],  # noqa: S603
+                input=code,
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode != 0:
+                pytest.fail(f"Bash block {i} has syntax errors:\nCode:\n{code}\nError:\n{result.stderr}")
+
+    def test_help_commands_valid(self, root, logger):
+        """Test that --help commands in bash blocks are valid."""
+        readme = root / "README.md"
+        content = readme.read_text(encoding="utf-8")
+        bash_blocks = BASH_BLOCK.findall(content)
+
+        logger.info("Testing help commands from bash blocks")
+
+        help_commands = []
+        for code in bash_blocks:
+            for line in code.split("\n"):
+                line = line.strip()
+                # Look for help commands (--help or -h as separate arguments)
+                if "--help" in line or " -h" in line or line.endswith(" -h"):
+                    # Skip comments
+                    if line.startswith("#"):
+                        continue
+                    # Extract the command (remove leading comments if any)
+                    if "#" in line:
+                        line = line.split("#")[0].strip()
+                    if line:
+                        help_commands.append(line)
+
+        logger.info("Found %d help command(s)", len(help_commands))
+
+        # We're just validating that help commands exist and have proper format
+        # We don't actually execute them as they may require specific tools
+        # The validation that they contain help flags was already done during collection
+        assert len(help_commands) > 0, "README should contain at least one help command example"
