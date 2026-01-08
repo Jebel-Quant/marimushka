@@ -150,8 +150,8 @@ class TestReadmeBashFragments:
         for code in bash_blocks:
             for line in code.split("\n"):
                 line = line.strip()
-                # Look for help commands (--help, -h)
-                if "--help" in line or line.endswith("-h"):
+                # Look for help commands (--help or -h as separate arguments)
+                if "--help" in line or " -h" in line or line.endswith(" -h"):
                     # Skip comments
                     if line.startswith("#"):
                         continue
@@ -165,9 +165,5 @@ class TestReadmeBashFragments:
 
         # We're just validating that help commands exist and have proper format
         # We don't actually execute them as they may require specific tools
-        for cmd in help_commands:
-            # Basic validation: should have at least a command and a help flag
-            parts = cmd.split()
-            assert len(parts) >= 1, f"Command '{cmd}' should have at least one word"
-            # Verify help flag is present
-            assert "--help" in cmd or "-h" in cmd, f"Command '{cmd}' should contain --help or -h flag"
+        # The validation that they contain help flags was already done during collection
+        assert len(help_commands) > 0, "README should contain at least one help command example"
