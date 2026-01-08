@@ -177,7 +177,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Export marimo notebooks
-        uses: jebel-quant/marimushka@0.2.1
+        uses: jebel-quant/marimushka@v0.2.1
         with:
           notebooks: 'notebooks'
           apps: 'apps'
@@ -271,28 +271,6 @@ make test
 
 # Run linting and formatting
 make fmt
-```
-
-### Running Tests
-
-To run the tests, you'll need to install the development dependencies:
-
-```bash
-# Install the package with development dependencies
-pip install -e ".[dev]"
-
-# Or with uv (recommended)
-uv pip install -e ".[dev]"
-```
-
-Then you can run the tests using pytest:
-
-```bash
-# Run tests with pytest
-pytest src/tests/ -v
-
-# Or use the make command
-make test
 ```
 
 ## 📄 License
