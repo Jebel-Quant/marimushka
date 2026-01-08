@@ -8,6 +8,7 @@ executes the code, and verifies the output matches the documented result.
 """
 
 import re
+import shutil
 import subprocess
 import sys
 
@@ -20,6 +21,9 @@ RESULT = re.compile(r"```result\n(.*?)```", re.DOTALL)
 
 # Regex for Bash code blocks
 BASH_BLOCK = re.compile(r"```bash\n(.*?)```", re.DOTALL)
+
+# Get absolute path for bash executable to avoid S607 warnings
+BASH = shutil.which("bash") or "/usr/bin/bash"
 
 
 def test_readme_runs(logger, root):
@@ -125,7 +129,7 @@ class TestReadmeBashFragments:
             # Use bash -n to check syntax without executing
             # Trust boundary: we use bash -n which only parses without executing
             result = subprocess.run(
-                ["bash", "-n"],  # noqa: S603, S607
+                [BASH, "-n"],  # noqa: S603
                 input=code,
                 capture_output=True,
                 text=True,
