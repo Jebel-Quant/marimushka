@@ -136,11 +136,7 @@ class TestReadmeBashFragments:
             )
 
             if result.returncode != 0:
-                pytest.fail(
-                    f"Bash block {i} has syntax errors:\n"
-                    f"Code:\n{code}\n"
-                    f"Error:\n{result.stderr}"
-                )
+                pytest.fail(f"Bash block {i} has syntax errors:\nCode:\n{code}\nError:\n{result.stderr}")
 
     def test_help_commands_valid(self, root, logger):
         """Test that --help commands in bash blocks are valid."""
