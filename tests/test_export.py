@@ -300,44 +300,22 @@ class TestMainTyper:
     """Tests for the _main_typer function."""
 
     @patch("marimushka.export.main")
-    def test_main_typer_with_option_objects(self, mock_main):
-        """Test _main_typer function with typer.Option objects."""
+    def test_main_typer_passes_parameters_directly(self, mock_main):
+        """Test _main_typer function passes parameters directly to main()."""
         from marimushka.export import _main_typer
 
-        # Setup - create mock Option objects with default attributes
-        mock_output = MagicMock()
-        mock_output.default = "custom_site"
-
-        mock_template = MagicMock()
-        mock_template.default = "custom_template.html"
-
-        mock_notebooks = MagicMock()
-        mock_notebooks.default = "custom_notebooks"
-
-        mock_apps = MagicMock()
-        mock_apps.default = "custom_apps"
-
-        mock_notebooks_wasm = MagicMock()
-        mock_notebooks_wasm.default = "custom_notebooks_wasm"
-
-        mock_sandbox = MagicMock()
-        mock_sandbox.default = False
-
-        mock_bin_path = MagicMock()
-        mock_bin_path.default = "/custom/bin"
-
-        # Execute
+        # Execute - pass values directly (as Typer does after resolving Options)
         _main_typer(
-            output=mock_output,
-            template=mock_template,
-            notebooks=mock_notebooks,
-            apps=mock_apps,
-            notebooks_wasm=mock_notebooks_wasm,
-            sandbox=mock_sandbox,
-            bin_path=mock_bin_path,
+            output="custom_site",
+            template="custom_template.html",
+            notebooks="custom_notebooks",
+            apps="custom_apps",
+            notebooks_wasm="custom_notebooks_wasm",
+            sandbox=False,
+            bin_path="/custom/bin",
         )
 
-        # Assert - verify that main was called with the default values
+        # Assert - verify that main was called with the same values
         mock_main.assert_called_once_with(
             output="custom_site",
             template="custom_template.html",

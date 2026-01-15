@@ -205,34 +205,19 @@ def main(
     sandbox: bool = True,
     bin_path: str | Path | None = None,
 ) -> str:
-    """Call the implementation function with the provided parameters and return its result.
+    """Export marimo notebooks and generate an index page.
 
-    Parameters
-    ----------
-    output: str | Path
-        The output directory where generated files will be stored.
-        Defaults to "_site".
-    template: str | Path
-        Path to the template file used during the generation process.
-        Defaults to a predefined "tailwind.html.j2" file.
-    notebooks: str | Path
-        Directory containing the notebooks to be processed.
-        Defaults to "notebooks".
-    apps: str | Path
-        Directory containing application files. Defaults to "apps".
-    notebooks_wasm: str | Path
-        Directory containing WebAssembly-related files for notebooks.
-        Defaults to "notebooks".
-    sandbox: bool
-        Whether to run the notebook in a sandbox. Defaults to True.
-    bin_path: str | Path | None
-        The directory where the executable is located. Defaults to None.
+    Args:
+        output: Output directory for generated files. Defaults to "_site".
+        template: Path to Jinja2 template file. Defaults to built-in Tailwind template.
+        notebooks: Directory containing static notebooks. Defaults to "notebooks".
+        apps: Directory containing app notebooks. Defaults to "apps".
+        notebooks_wasm: Directory containing interactive notebooks. Defaults to "notebooks".
+        sandbox: Whether to run exports in isolated sandbox. Defaults to True.
+        bin_path: Custom path to uvx executable. Defaults to None.
 
     Returns:
-    -------
-    str
-        The result returned by the implementation function, representing the
-        completion of the generation process or final outcome.
+        Rendered HTML content as string, empty if no notebooks found.
 
     """
     # Call the implementation function with the provided parameters and return its result
@@ -265,25 +250,14 @@ def _main_typer(
     bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
 ) -> None:
     """Export marimo notebooks and build an HTML index page linking to them."""
-    # When called through Typer, the parameters might be typer.Option objects
-    # Extract the default values from the Option objects if necessary
-    output_val = getattr(output, "default", output)
-    template_val = getattr(template, "default", template)
-    notebooks_val = getattr(notebooks, "default", notebooks)
-    apps_val = getattr(apps, "default", apps)
-    notebooks_wasm_val = getattr(notebooks_wasm, "default", notebooks_wasm)
-    sandbox_val = getattr(sandbox, "default", sandbox)
-    bin_path_val = getattr(bin_path, "default", bin_path)
-
-    # Call the main function with the resolved parameter values
     main(
-        output=output_val,
-        template=template_val,
-        notebooks=notebooks_val,
-        apps=apps_val,
-        notebooks_wasm=notebooks_wasm_val,
-        sandbox=sandbox_val,
-        bin_path=bin_path_val,
+        output=output,
+        template=template,
+        notebooks=notebooks,
+        apps=apps,
+        notebooks_wasm=notebooks_wasm,
+        sandbox=sandbox,
+        bin_path=bin_path,
     )
 
 
