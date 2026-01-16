@@ -2,7 +2,7 @@
 
 **Generated:** 2026-01-16
 **Version Analyzed:** 0.2.3
-**Branch:** claude
+**Branch:** main
 
 ---
 
@@ -16,7 +16,7 @@ Marimushka is a well-crafted Python CLI tool for exporting marimo notebooks to H
 | **Architecture** | 9/10 | Clear separation of concerns, extensible design |
 | **Test Coverage** | 9/10 | 96% coverage, comprehensive test suite |
 | **Documentation** | 9/10 | Comprehensive README, API docs, CLAUDE.md |
-| **CI/CD** | 9/10 | 12 workflows, automated releases |
+| **CI/CD** | 9/10 | 10 workflows, automated releases |
 | **Security** | 8/10 | Bandit checks enabled, subprocess handling reviewed |
 | **Maintainability** | 9/10 | Minimal dependencies, modular design |
 | **Developer Experience** | 9/10 | Good Makefile, pre-commit hooks, clear workflow |
@@ -29,13 +29,13 @@ Marimushka is a well-crafted Python CLI tool for exporting marimo notebooks to H
 
 ### 1.1 Module Structure
 
-The codebase consists of 4 Python modules (~1,175 lines total):
+The codebase consists of 4 Python modules (~1,201 lines total):
 
 | Module | Lines | Purpose | Quality |
 |--------|-------|---------|---------|
 | `export.py` | 553 | CLI entry point, orchestration | Excellent |
-| `exceptions.py` | 351 | Error hierarchy, result types | Excellent |
-| `notebook.py` | 251 | Notebook abstraction | Excellent |
+| `exceptions.py` | 350 | Error hierarchy, result types | Excellent |
+| `notebook.py` | 250 | Notebook abstraction | Excellent |
 | `__init__.py` | 48 | Package exports | Good |
 
 ### 1.2 Strengths
@@ -73,9 +73,9 @@ def failed(cls, notebook_path: Path, error: ExportError) -> "NotebookExportResul
 **Lines of Code:**
 | Category | Lines |
 |----------|-------|
-| Source Code | 1,175 |
-| Test Code | 3,300+ |
-| Ratio | 1:2.8 |
+| Source Code | 1,201 |
+| Test Code | 4,431 |
+| Ratio | 1:3.7 |
 
 ---
 
@@ -159,16 +159,15 @@ __init__.py
 ### 3.2 Test Statistics
 
 - **Total Tests:** 181 passing
-- **Test-to-Code Ratio:** 2.8:1 (excellent)
-- **Coverage:** 96% (up from 88% baseline)
+- **Test-to-Code Ratio:** 3.7:1 (excellent)
+- **Coverage:** 96%
 
 ### 3.3 Test Categories
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| Unit Tests | ~120 | Function-level testing |
-| Integration Tests | ~30 | End-to-end workflows |
-| Rhiza Framework Tests | ~30 | Structure/compliance validation |
+| Project Tests | ~110 | Unit and integration testing |
+| Rhiza Framework Tests | ~70 | Structure/compliance validation |
 
 ### 3.4 Watch Command Tests
 
@@ -210,7 +209,7 @@ The watch command now has comprehensive test coverage including:
 
 ### 5.1 Workflow Summary
 
-12 GitHub Actions workflows covering:
+10 GitHub Actions workflows covering:
 
 | Workflow | Purpose |
 |----------|---------|
@@ -222,9 +221,7 @@ The watch command now has comprehensive test coverage including:
 | `rhiza_validate.yml` | Linting/validation |
 | `rhiza_marimo.yml` | Marimo notebook checks |
 | `rhiza_book.yml` | Documentation building |
-| `rhiza_devcontainer.yml` | Dev container setup |
 | `rhiza_sync.yml` | Rhiza framework sync |
-| `rhiza_docker.yml` | Docker image building |
 | `rhiza.yml` | Meta-workflow orchestration |
 
 ### 5.2 Strengths
@@ -362,8 +359,8 @@ Marimushka is a **high-quality, production-ready** Python CLI tool. The codebase
 - 181 passing tests
 - 96% code coverage
 - 4 core dependencies
-- 12 CI/CD workflows
-- 2.8:1 test-to-code ratio
+- 10 CI/CD workflows
+- 3.7:1 test-to-code ratio
 
 **Recommendation:** This codebase is suitable for production use and serves as an excellent example of Python CLI tool development.
 
