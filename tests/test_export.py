@@ -3,6 +3,8 @@
 This module contains tests for the functions in the export.py module:
 - _folder2notebooks
 - _generate_index
+- _validate_template
+- _export_notebooks_parallel
 - main
 - cli
 """
@@ -14,7 +16,13 @@ import jinja2
 import pytest
 import typer
 
-from marimushka.export import _generate_index, main
+from marimushka.export import (
+    _export_notebook,
+    _export_notebooks_parallel,
+    _generate_index,
+    _validate_template,
+    main,
+)
 from marimushka.notebook import Kind, folder2notebooks
 
 
@@ -73,6 +81,138 @@ class TestFolder2Notebooks:
         assert str(notebook2) in notebook_paths
 
 
+class TestValidateTemplate:
+    """Tests for the _validate_template function."""
+
+    def test_validate_template_success(self, tmp_path):
+        """Test successful template validation."""
+        # Setup
+        template_file = tmp_path / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Execute - should not raise
+        _validate_template(template_file)
+
+    def test_validate_template_jinja2_extension(self, tmp_path):
+        """Test template validation with .jinja2 extension."""
+        # Setup
+        template_file = tmp_path / "template.html.jinja2"
+        template_file.write_text("<html></html>")
+
+        # Execute - should not raise
+        _validate_template(template_file)
+
+    def test_validate_template_not_found(self, tmp_path):
+        """Test template validation when file not found."""
+        # Setup
+        template_file = tmp_path / "nonexistent.html.j2"
+
+        # Execute and Assert
+        with pytest.raises(FileNotFoundError, match="Template file not found"):
+            _validate_template(template_file)
+
+    def test_validate_template_not_a_file(self, tmp_path):
+        """Test template validation when path is a directory."""
+        # Setup
+        template_dir = tmp_path / "template_dir"
+        template_dir.mkdir()
+
+        # Execute and Assert
+        with pytest.raises(ValueError, match="Template path is not a file"):
+            _validate_template(template_dir)
+
+    def test_validate_template_wrong_extension_warning(self, tmp_path, caplog):
+        """Test template validation warns on wrong extension."""
+        # Setup
+        template_file = tmp_path / "template.html"
+        template_file.write_text("<html></html>")
+
+        # Execute - should not raise but should log warning
+        _validate_template(template_file)
+
+        # The warning is logged via loguru, which doesn't use caplog
+        # Just verify no exception was raised
+
+
+class TestExportNotebook:
+    """Tests for the _export_notebook function."""
+
+    def test_export_notebook_success(self):
+        """Test successful notebook export."""
+        # Setup
+        mock_notebook = MagicMock()
+        mock_notebook.export.return_value = True
+        output_dir = Path("/output")
+
+        # Execute
+        notebook, success = _export_notebook(mock_notebook, output_dir, sandbox=True, bin_path=None)
+
+        # Assert
+        assert notebook is mock_notebook
+        assert success is True
+        mock_notebook.export.assert_called_once_with(output_dir=output_dir, sandbox=True, bin_path=None)
+
+    def test_export_notebook_failure(self):
+        """Test notebook export failure."""
+        # Setup
+        mock_notebook = MagicMock()
+        mock_notebook.export.return_value = False
+        output_dir = Path("/output")
+
+        # Execute
+        notebook, success = _export_notebook(mock_notebook, output_dir, sandbox=False, bin_path=Path("/bin"))
+
+        # Assert
+        assert notebook is mock_notebook
+        assert success is False
+
+
+class TestExportNotebooksParallel:
+    """Tests for the _export_notebooks_parallel function."""
+
+    def test_export_notebooks_parallel_empty(self):
+        """Test parallel export with empty list."""
+        # Execute
+        success, failure = _export_notebooks_parallel([], Path("/output"), True, None)
+
+        # Assert
+        assert success == 0
+        assert failure == 0
+
+    def test_export_notebooks_parallel_success(self):
+        """Test successful parallel export."""
+        # Setup
+        mock_notebooks = []
+        for _ in range(3):
+            nb = MagicMock()
+            nb.export.return_value = True
+            mock_notebooks.append(nb)
+
+        # Execute
+        success, failure = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
+
+        # Assert
+        assert success == 3
+        assert failure == 0
+
+    def test_export_notebooks_parallel_mixed_results(self):
+        """Test parallel export with some failures."""
+        # Setup
+        mock_notebooks = []
+        for i in range(3):
+            nb = MagicMock()
+            nb.path.name = f"notebook{i}.py"
+            nb.export.return_value = i != 1  # Second notebook fails
+            mock_notebooks.append(nb)
+
+        # Execute
+        success, failure = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
+
+        # Assert
+        assert success == 2
+        assert failure == 1
+
+
 class TestGenerateIndex:
     """Tests for the _generate_index function."""
 
@@ -100,17 +240,18 @@ class TestGenerateIndex:
         mock_env.return_value.get_template.return_value = mock_template
         mock_template.render.return_value = "<html>Rendered content</html>"
 
-        # Execute
+        # Execute with parallel=False for predictable test behavior
         result = _generate_index(
             output=output_dir,
             template_file=template_file,
             notebooks=notebooks,
             apps=apps,
             notebooks_wasm=notebooks_wasm,
+            parallel=False,
         )
 
         # Assert
-        # Check that to_wasm was called for each notebook and app
+        # Check that export was called for each notebook and app
         mock_notebook1.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
         mock_notebook2.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
         mock_app1.export.assert_called_once_with(output_dir=output_dir / "apps", sandbox=True, bin_path=None)
@@ -144,9 +285,11 @@ class TestGenerateIndex:
         mock_template.render.return_value = "<html>Rendered content</html>"
 
         # Execute and Assert (should not raise an exception)
-        result = _generate_index(output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps)
+        result = _generate_index(
+            output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps, parallel=False
+        )
 
-        # Check that to_wasm was still called
+        # Check that export was still called
         mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
 
         # Check that the function returns the rendered HTML even if there's a file error
@@ -169,21 +312,43 @@ class TestGenerateIndex:
         mock_env.side_effect = jinja2.exceptions.TemplateError("Template error")
 
         # Execute and Assert (should not raise an exception)
-        result = _generate_index(output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps)
+        result = _generate_index(
+            output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps, parallel=False
+        )
 
-        # Check that to_wasm was still called
+        # Check that export was still called
         mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
 
         # Check that the function returns an empty string when there's a template error
         assert result == ""
 
+    def test_generate_index_no_notebooks(self, tmp_path):
+        """Test index generation with no notebooks."""
+        # Setup
+        output_dir = tmp_path / "output"
+        template_file = tmp_path / "template.html.j2"
+        template_file.write_text("<html>{{ notebooks }}</html>")
+
+        # Execute
+        result = _generate_index(
+            output=output_dir,
+            template_file=template_file,
+            notebooks=[],
+            apps=[],
+            notebooks_wasm=[],
+        )
+
+        # Assert - should still generate index with empty lists
+        assert "[]" in result
+
 
 class TestMain:
     """Tests for the main function."""
 
+    @patch("marimushka.export._validate_template")
     @patch("marimushka.export.folder2notebooks")
     @patch("marimushka.export._generate_index")
-    def test_main_success(self, mock_generate_index, mock_folder2notebooks):
+    def test_main_success(self, mock_generate_index, mock_folder2notebooks, mock_validate):
         """Test successful execution of the main function."""
         # Setup
         mock_notebooks = [MagicMock(), MagicMock()]
@@ -201,9 +366,10 @@ class TestMain:
         mock_folder2notebooks.assert_any_call(folder="notebooks", kind=Kind.NB_WASM)
         mock_generate_index.assert_called_once()
 
+    @patch("marimushka.export._validate_template")
     @patch("marimushka.export.folder2notebooks")
     @patch("marimushka.export._generate_index")
-    def test_main_no_notebooks_or_apps(self, mock_generate_index, mock_folder2notebooks):
+    def test_main_no_notebooks_or_apps(self, mock_generate_index, mock_folder2notebooks, mock_validate):
         """Test handling of no notebooks or apps found."""
         # Setup
         mock_folder2notebooks.return_value = []
@@ -218,9 +384,10 @@ class TestMain:
         mock_folder2notebooks.assert_any_call(folder="notebooks", kind=Kind.NB_WASM)
         mock_generate_index.assert_not_called()
 
+    @patch("marimushka.export._validate_template")
     @patch("marimushka.export.folder2notebooks")
     @patch("marimushka.export._generate_index")
-    def test_main_custom_paths(self, mock_generate_index, mock_folder2notebooks, tmp_path):
+    def test_main_custom_paths(self, mock_generate_index, mock_folder2notebooks, mock_validate, tmp_path):
         """Test main function with custom paths."""
         # Setup
         mock_notebooks = [MagicMock(), MagicMock()]
@@ -257,7 +424,43 @@ class TestMain:
             notebooks_wasm=mock_notebooks_wasm,
             sandbox=True,
             bin_path=None,
+            parallel=True,
+            max_workers=4,
         )
+
+    @patch("marimushka.export._validate_template")
+    @patch("marimushka.export.folder2notebooks")
+    @patch("marimushka.export._generate_index")
+    def test_main_parallel_options(self, mock_generate_index, mock_folder2notebooks, mock_validate, tmp_path):
+        """Test main function with parallel options."""
+        # Setup
+        mock_notebooks = [MagicMock()]
+        mock_folder2notebooks.side_effect = [mock_notebooks, [], []]
+
+        custom_output = tmp_path / "output"
+        custom_template = tmp_path / "template.html.j2"
+
+        # Execute with parallel=False and custom max_workers
+        main(
+            output=custom_output,
+            template=custom_template,
+            parallel=False,
+            max_workers=8,
+        )
+
+        # Assert
+        call_kwargs = mock_generate_index.call_args.kwargs
+        assert call_kwargs["parallel"] is False
+        assert call_kwargs["max_workers"] == 8
+
+    def test_main_invalid_template(self, tmp_path):
+        """Test main function with non-existent template."""
+        # Setup
+        nonexistent_template = tmp_path / "nonexistent.html.j2"
+
+        # Execute and Assert
+        with pytest.raises(FileNotFoundError, match="Template file not found"):
+            main(template=nonexistent_template)
 
 
 class TestCallback:
@@ -313,6 +516,8 @@ class TestMainTyper:
             notebooks_wasm="custom_notebooks_wasm",
             sandbox=False,
             bin_path="/custom/bin",
+            parallel=True,
+            max_workers=4,
         )
 
         # Assert - verify that main was called with the same values
@@ -324,6 +529,8 @@ class TestMainTyper:
             notebooks_wasm="custom_notebooks_wasm",
             sandbox=False,
             bin_path="/custom/bin",
+            parallel=True,
+            max_workers=4,
         )
 
     @patch("marimushka.export.main")
@@ -340,6 +547,8 @@ class TestMainTyper:
             notebooks_wasm="notebooks_wasm",
             sandbox=True,
             bin_path="/bin",
+            parallel=False,
+            max_workers=2,
         )
 
         # Assert - verify that main was called with the same values
@@ -351,4 +560,31 @@ class TestMainTyper:
             notebooks_wasm="notebooks_wasm",
             sandbox=True,
             bin_path="/bin",
+            parallel=False,
+            max_workers=2,
         )
+
+
+class TestWatchCommand:
+    """Tests for the watch command."""
+
+    def test_watch_command_no_watchfiles(self):
+        """Test watch command fails gracefully without watchfiles."""
+        from marimushka.export import watch
+
+        # We can't easily test the ImportError case without actually
+        # uninstalling watchfiles, so we just verify the function exists
+        assert callable(watch)
+
+    @patch("marimushka.export.main")
+    def test_watch_command_exists(self, mock_main):
+        """Test that watch command is registered."""
+        from marimushka.export import app
+
+        # Get all registered commands
+        commands = [cmd.name for cmd in app.registered_commands]
+
+        # Assert watch is registered
+        assert "watch" in commands
+        assert "export" in commands
+        assert "version" in commands

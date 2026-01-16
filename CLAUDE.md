@@ -23,13 +23,21 @@ make clean      # Clean artifacts and stale branches
 
 - **`export.py`** - CLI entry point and export orchestration
   - `cli()` → `app()` (Typer) → `main()` → `_main_impl()` → `_generate_index()`
-  - Handles template rendering with Jinja2
+  - `_validate_template()`: Early path validation with clear errors
+  - `_export_notebooks_parallel()`: Parallel export using ThreadPoolExecutor
+  - Rich progress bar for visual feedback
   - Default output: `_site/`
 
 - **`notebook.py`** - Notebook abstraction
   - `Kind` enum: `NB` (static HTML), `NB_WASM` (interactive edit mode), `APP` (run mode, code hidden)
   - `Notebook` dataclass: handles export via `uvx marimo export` subprocess
   - `folder2notebooks()`: scans directories for `.py` files
+
+### CLI Commands
+
+- `marimushka export` - Export notebooks (default: parallel with 4 workers)
+- `marimushka watch` - Watch mode for auto re-export on changes (requires `watchfiles`)
+- `marimushka version` - Show version
 
 ### Export Types
 

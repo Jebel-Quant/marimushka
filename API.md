@@ -47,6 +47,8 @@ def main(
     notebooks_wasm: str | Path = "notebooks",
     sandbox: bool = True,
     bin_path: str | Path | None = None,
+    parallel: bool = True,
+    max_workers: int = 4,
 ) -> str
 ```
 
@@ -61,8 +63,14 @@ def main(
 | `notebooks_wasm` | `str \| Path` | `"notebooks"` | Directory containing interactive notebooks |
 | `sandbox` | `bool` | `True` | Run exports in isolated sandbox |
 | `bin_path` | `str \| Path \| None` | `None` | Custom path to `uvx` executable |
+| `parallel` | `bool` | `True` | Export notebooks in parallel for faster execution |
+| `max_workers` | `int` | `4` | Maximum number of parallel workers |
 
 **Returns:** Rendered HTML content as a string (empty string if no notebooks found).
+
+**Raises:**
+- `FileNotFoundError`: If the template file does not exist.
+- `ValueError`: If the template path is not a file.
 
 **Example:**
 
@@ -437,6 +445,50 @@ def test_notebook_html_path():
     main(notebooks='docs/notebooks', apps='docs/apps', output='_site')
     "
 ```
+
+---
+
+## CLI Commands
+
+### Export Command
+
+```bash
+uvx marimushka export [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--output, -o` | `_site` | Output directory |
+| `--template, -t` | Built-in Tailwind | Template file path |
+| `--notebooks, -n` | `notebooks` | Notebooks directory |
+| `--apps, -a` | `apps` | Apps directory |
+| `--notebooks-wasm, -nw` | `notebooks_wasm` | Interactive notebooks directory |
+| `--sandbox/--no-sandbox` | `--sandbox` | Enable/disable sandbox mode |
+| `--parallel/--no-parallel` | `--parallel` | Enable/disable parallel export |
+| `--max-workers, -w` | `4` | Number of parallel workers |
+
+### Watch Command
+
+Watch for file changes and automatically re-export:
+
+```bash
+uvx marimushka watch [OPTIONS]
+```
+
+Requires the `watchfiles` package:
+
+```bash
+# Install with watch support
+uv add marimushka[watch]
+
+# Or install watchfiles separately
+uv add watchfiles
+```
+
+The watch command accepts the same options as `export` and will:
+1. Run an initial export
+2. Watch notebook directories and template for changes
+3. Automatically re-export when files change
 
 ---
 

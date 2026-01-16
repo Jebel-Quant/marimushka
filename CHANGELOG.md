@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Parallel export**: Notebooks now export in parallel by default (4 workers), significantly improving export speed for large projects
+- **Progress bar**: Rich progress bar shows export progress in the CLI
+- **Watch mode**: New `marimushka watch` command for automatic re-export on file changes (requires `watchfiles` package)
+- **Input validation**: Early validation of template paths with clear error messages
+- **CLI options**: `--parallel/--no-parallel` and `--max-workers` flags for controlling parallel execution
+- **Optional dependency**: `watchfiles` available as optional `[watch]` extra
+
 ### Changed
 - Synced with Rhiza framework updates
+- Improved error handling with fail-fast behavior for invalid templates
 
 ## [0.2.3] - 2025-01-10
 

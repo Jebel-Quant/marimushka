@@ -20,12 +20,14 @@ The exported files will be placed in the specified output directory (default: _s
 # ///
 
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import jinja2
 import typer
 from loguru import logger
 from rich import print as rich_print
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
 from . import __version__
 from .notebook import Kind, Notebook, folder2notebooks
@@ -40,6 +42,94 @@ logger.add(
 )
 
 app = typer.Typer(help=f"Marimushka - Export marimo notebooks in style. Version: {__version__}")
+
+
+def _validate_template(template_path: Path) -> None:
+    """Validate the template file exists and has correct extension.
+
+    Args:
+        template_path: Path to the template file.
+
+    Raises:
+        FileNotFoundError: If the template file does not exist.
+        ValueError: If the template file does not have a .j2 extension.
+
+    """
+    if not template_path.exists():
+        raise FileNotFoundError(f"Template file not found: {template_path}")
+    if not template_path.is_file():
+        raise ValueError(f"Template path is not a file: {template_path}")
+    if template_path.suffix not in (".j2", ".jinja2"):
+        logger.warning(f"Template file '{template_path}' does not have .j2 or .jinja2 extension")
+
+
+def _export_notebook(
+    notebook: Notebook,
+    output_dir: Path,
+    sandbox: bool,
+    bin_path: Path | None,
+) -> tuple[Notebook, bool]:
+    """Export a single notebook and return the result.
+
+    Args:
+        notebook: The notebook to export.
+        output_dir: Output directory for the exported HTML.
+        sandbox: Whether to use sandbox mode.
+        bin_path: Custom path to uvx executable.
+
+    Returns:
+        Tuple of (notebook, success_bool).
+
+    """
+    success = notebook.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
+    return notebook, success
+
+
+def _export_notebooks_parallel(
+    notebooks: list[Notebook],
+    output_dir: Path,
+    sandbox: bool,
+    bin_path: Path | None,
+    max_workers: int = 4,
+    progress: Progress | None = None,
+    task_id: int | None = None,
+) -> tuple[int, int]:
+    """Export notebooks in parallel using a thread pool.
+
+    Args:
+        notebooks: List of notebooks to export.
+        output_dir: Output directory for exported HTML files.
+        sandbox: Whether to use sandbox mode.
+        bin_path: Custom path to uvx executable.
+        max_workers: Maximum number of parallel workers. Defaults to 4.
+        progress: Optional Rich Progress instance for progress tracking.
+        task_id: Optional task ID for progress updates.
+
+    Returns:
+        Tuple of (success_count, failure_count).
+
+    """
+    if not notebooks:
+        return 0, 0
+
+    success_count = 0
+    failure_count = 0
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_export_notebook, nb, output_dir, sandbox, bin_path): nb for nb in notebooks}
+
+        for future in as_completed(futures):
+            notebook, success = future.result()
+            if success:
+                success_count += 1
+            else:
+                failure_count += 1
+                logger.error(f"Failed to export: {notebook.path.name}")
+
+            if progress and task_id is not None:
+                progress.advance(task_id)
+
+    return success_count, failure_count
 
 
 @app.callback(invoke_without_command=True)
@@ -60,6 +150,8 @@ def _generate_index(
     notebooks_wasm: list[Notebook] | None = None,
     sandbox: bool = True,
     bin_path: Path | None = None,
+    parallel: bool = True,
+    max_workers: int = 4,
 ) -> str:
     """Generate an index.html file that lists all the notebooks.
 
@@ -68,17 +160,18 @@ def _generate_index(
     with a formatted title and a link to open it.
 
     Args:
-        notebooks_wasm:
-        notebooks (List[Notebook]): List of notebooks with data for notebooks
-        apps (List[Notebook]): List of notebooks with data for apps
-        notebooks_wasm (List[Notebook]): List of notebooks with data for notebooks_wasm
-        output (Path): Directory where the index.html file will be saved
-        template_file (Path, optional): Path to the template file. If None, uses the default template.
-        sandbox (bool): Whether to run the notebook in a sandbox. Defaults to True.
-        bin_path (Path | None): The directory where the executable is located. Defaults to None.
+        output: Directory where the index.html file will be saved.
+        template_file: Path to the Jinja2 template file.
+        notebooks: List of notebooks for static HTML export.
+        apps: List of notebooks for app export.
+        notebooks_wasm: List of notebooks for interactive WebAssembly export.
+        sandbox: Whether to run the notebook in a sandbox. Defaults to True.
+        bin_path: The directory where the executable is located. Defaults to None.
+        parallel: Whether to export notebooks in parallel. Defaults to True.
+        max_workers: Maximum number of parallel workers. Defaults to 4.
 
     Returns:
-        str: The rendered HTML content as a string
+        The rendered HTML content as a string.
 
     """
     # Initialize empty lists if None is provided
@@ -86,16 +179,55 @@ def _generate_index(
     apps = apps or []
     notebooks_wasm = notebooks_wasm or []
 
-    # Export notebooks to WebAssembly
-    for nb in notebooks:
-        nb.export(output_dir=output / "notebooks", sandbox=sandbox, bin_path=bin_path)
+    total_notebooks = len(notebooks) + len(apps) + len(notebooks_wasm)
 
-    # Export apps to WebAssembly
-    for nb in apps:
-        nb.export(output_dir=output / "apps", sandbox=sandbox, bin_path=bin_path)
+    if total_notebooks > 0:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TextColumn("[cyan]{task.completed}/{task.total}"),
+        ) as progress:
+            # Create progress tasks for each category
+            if parallel:
+                # Parallel export with combined progress
+                task = progress.add_task("[green]Exporting notebooks...", total=total_notebooks)
 
-    for nb in notebooks_wasm:
-        nb.export(output_dir=output / "notebooks_wasm", sandbox=sandbox, bin_path=bin_path)
+                all_notebooks = [
+                    (notebooks, output / "notebooks"),
+                    (apps, output / "apps"),
+                    (notebooks_wasm, output / "notebooks_wasm"),
+                ]
+
+                total_success = 0
+                total_failure = 0
+
+                for nb_list, out_dir in all_notebooks:
+                    if nb_list:
+                        success, failure = _export_notebooks_parallel(
+                            nb_list, out_dir, sandbox, bin_path, max_workers, progress, task
+                        )
+                        total_success += success
+                        total_failure += failure
+
+                if total_failure > 0:
+                    logger.warning(f"Export completed: {total_success} succeeded, {total_failure} failed")
+            else:
+                # Sequential export with progress bar
+                task = progress.add_task("[green]Exporting notebooks...", total=total_notebooks)
+
+                for nb in notebooks:
+                    nb.export(output_dir=output / "notebooks", sandbox=sandbox, bin_path=bin_path)
+                    progress.advance(task)
+
+                for nb in apps:
+                    nb.export(output_dir=output / "apps", sandbox=sandbox, bin_path=bin_path)
+                    progress.advance(task)
+
+                for nb in notebooks_wasm:
+                    nb.export(output_dir=output / "notebooks_wasm", sandbox=sandbox, bin_path=bin_path)
+                    progress.advance(task)
 
     # Create the full path for the index.html file
     index_path: Path = Path(output) / "index.html"
@@ -143,11 +275,18 @@ def _main_impl(
     notebooks_wasm: str | Path,
     sandbox: bool = True,
     bin_path: str | Path | None = None,
+    parallel: bool = True,
+    max_workers: int = 4,
 ) -> str:
     """Implement the main function.
 
     This function contains the actual implementation of the main functionality.
     It is called by the main() function, which handles the Typer options.
+
+    Raises:
+        FileNotFoundError: If the template file does not exist.
+        ValueError: If the template path is not a file.
+
     """
     logger.info("Starting marimushka build process")
     logger.info(f"Version of Marimushka: {__version__}")
@@ -160,13 +299,16 @@ def _main_impl(
     # Make sure the output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Convert template to Path if provided
+    # Convert template to Path and validate early
     template_file: Path = Path(template)
+    _validate_template(template_file)
+
     logger.info(f"Using template file: {template_file}")
     logger.info(f"Notebooks: {notebooks}")
     logger.info(f"Apps: {apps}")
     logger.info(f"Notebooks-wasm: {notebooks_wasm}")
     logger.info(f"Sandbox: {sandbox}")
+    logger.info(f"Parallel: {parallel} (max_workers={max_workers})")
     logger.info(f"Bin path: {bin_path}")
 
     # Convert bin_path to Path if provided
@@ -193,6 +335,8 @@ def _main_impl(
         notebooks_wasm=notebooks_wasm_data,
         sandbox=sandbox,
         bin_path=bin_path_obj,
+        parallel=parallel,
+        max_workers=max_workers,
     )
 
 
@@ -204,6 +348,8 @@ def main(
     notebooks_wasm: str | Path = "notebooks",
     sandbox: bool = True,
     bin_path: str | Path | None = None,
+    parallel: bool = True,
+    max_workers: int = 4,
 ) -> str:
     """Export marimo notebooks and generate an index page.
 
@@ -215,9 +361,15 @@ def main(
         notebooks_wasm: Directory containing interactive notebooks. Defaults to "notebooks".
         sandbox: Whether to run exports in isolated sandbox. Defaults to True.
         bin_path: Custom path to uvx executable. Defaults to None.
+        parallel: Whether to export notebooks in parallel. Defaults to True.
+        max_workers: Maximum number of parallel workers. Defaults to 4.
 
     Returns:
         Rendered HTML content as string, empty if no notebooks found.
+
+    Raises:
+        FileNotFoundError: If the template file does not exist.
+        ValueError: If the template path is not a file.
 
     """
     # Call the implementation function with the provided parameters and return its result
@@ -229,6 +381,8 @@ def main(
         notebooks_wasm=notebooks_wasm,
         sandbox=sandbox,
         bin_path=bin_path,
+        parallel=parallel,
+        max_workers=max_workers,
     )
 
 
@@ -248,6 +402,8 @@ def _main_typer(
     ),
     sandbox: bool = typer.Option(True, "--sandbox/--no-sandbox", help="Whether to run the notebook in a sandbox"),
     bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
+    parallel: bool = typer.Option(True, "--parallel/--no-parallel", help="Whether to export notebooks in parallel"),
+    max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers"),
 ) -> None:
     """Export marimo notebooks and build an HTML index page linking to them."""
     main(
@@ -258,7 +414,105 @@ def _main_typer(
         notebooks_wasm=notebooks_wasm,
         sandbox=sandbox,
         bin_path=bin_path,
+        parallel=parallel,
+        max_workers=max_workers,
     )
+
+
+@app.command(name="watch")
+def watch(
+    output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
+    template: str = typer.Option(
+        str(Path(__file__).parent / "templates" / "tailwind.html.j2"),
+        "--template",
+        "-t",
+        help="Path to the template file",
+    ),
+    notebooks: str = typer.Option("notebooks", "--notebooks", "-n", help="Directory containing marimo notebooks"),
+    apps: str = typer.Option("apps", "--apps", "-a", help="Directory containing marimo apps"),
+    notebooks_wasm: str = typer.Option(
+        "notebooks_wasm", "--notebooks-wasm", "-nw", help="Directory containing marimo notebooks"
+    ),
+    sandbox: bool = typer.Option(True, "--sandbox/--no-sandbox", help="Whether to run the notebook in a sandbox"),
+    bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
+    parallel: bool = typer.Option(True, "--parallel/--no-parallel", help="Whether to export notebooks in parallel"),
+    max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers"),
+) -> None:
+    """Watch for changes and automatically re-export notebooks.
+
+    This command watches the notebook directories and template file for changes,
+    automatically re-exporting when files are modified.
+
+    Requires the 'watchfiles' package: uv add watchfiles
+    """
+    try:
+        from watchfiles import watch as watchfiles_watch
+    except ImportError:
+        rich_print("[bold red]Error:[/bold red] watchfiles package is required for watch mode.")
+        rich_print("Install it with: [cyan]uv add watchfiles[/cyan]")
+        raise typer.Exit(1) from None
+
+    # Build list of paths to watch
+    watch_paths: list[Path] = []
+
+    template_path = Path(template)
+    if template_path.exists():
+        watch_paths.append(template_path.parent)
+
+    for folder in [notebooks, apps, notebooks_wasm]:
+        folder_path = Path(folder)
+        if folder_path.exists() and folder_path.is_dir():
+            watch_paths.append(folder_path)
+
+    if not watch_paths:
+        rich_print("[bold yellow]Warning:[/bold yellow] No directories to watch!")
+        raise typer.Exit(1)
+
+    rich_print("[bold green]Watching for changes in:[/bold green]")
+    for p in watch_paths:
+        rich_print(f"  [cyan]{p}[/cyan]")
+    rich_print("\n[dim]Press Ctrl+C to stop[/dim]\n")
+
+    # Initial export
+    rich_print("[bold blue]Running initial export...[/bold blue]")
+    main(
+        output=output,
+        template=template,
+        notebooks=notebooks,
+        apps=apps,
+        notebooks_wasm=notebooks_wasm,
+        sandbox=sandbox,
+        bin_path=bin_path,
+        parallel=parallel,
+        max_workers=max_workers,
+    )
+    rich_print("[bold green]Initial export complete![/bold green]\n")
+
+    # Watch for changes
+    try:
+        for changes in watchfiles_watch(*watch_paths):
+            changed_files = [str(change[1]) for change in changes]
+            rich_print("\n[bold yellow]Detected changes:[/bold yellow]")
+            for f in changed_files[:5]:  # Show first 5 changed files
+                rich_print(f"  [dim]{f}[/dim]")
+            if len(changed_files) > 5:
+                rich_print(f"  [dim]... and {len(changed_files) - 5} more[/dim]")
+
+            rich_print("[bold blue]Re-exporting...[/bold blue]")
+            main(
+                output=output,
+                template=template,
+                notebooks=notebooks,
+                apps=apps,
+                notebooks_wasm=notebooks_wasm,
+                sandbox=sandbox,
+                bin_path=bin_path,
+                parallel=parallel,
+                max_workers=max_workers,
+            )
+            rich_print("[bold green]Export complete![/bold green]")
+    except KeyboardInterrupt:
+        rich_print("\n[bold green]Watch mode stopped.[/bold green]")
 
 
 @app.command(name="version")

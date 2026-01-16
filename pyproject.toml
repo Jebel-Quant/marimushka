@@ -12,13 +12,17 @@ dependencies = [
     "rich>=14.0.0"
 ]
 
+[project.optional-dependencies]
+watch = ["watchfiles>=0.21.0"]
+
 [dependency-groups]
 dev = [
     "beautifulsoup4>=4.12.0",
     "numpy>=2.4",
     "marimo>=0.18",
     "plotly>=6.5",
-    "pandas>=2.3"
+    "pandas>=2.3",
+    "watchfiles>=0.21.0"
 ]
 
 [project.urls]
