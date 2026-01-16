@@ -12,6 +12,14 @@ from pathlib import Path
 
 from loguru import logger
 
+from .exceptions import (
+    ExportExecutableNotFoundError,
+    ExportSubprocessError,
+    NotebookExportResult,
+    NotebookInvalidError,
+    NotebookNotFoundError,
+)
+
 
 class Kind(Enum):
     """Kind of notebook."""
@@ -104,18 +112,18 @@ class Notebook:
         """Validate the notebook path after initialization.
 
         Raises:
-            FileNotFoundError: If the file does not exist
-            ValueError: If the path is not a file or not a Python file
+            NotebookNotFoundError: If the file does not exist.
+            NotebookInvalidError: If the path is not a file or not a Python file.
 
         """
         if not self.path.exists():
-            raise FileNotFoundError(f"File not found: {self.path}")
+            raise NotebookNotFoundError(self.path)
         if not self.path.is_file():
-            raise ValueError(f"Path is not a file: {self.path}")
+            raise NotebookInvalidError(self.path, reason="path is not a file")
         if not self.path.suffix == ".py":
-            raise ValueError(f"File is not a Python file: {self.path}")
+            raise NotebookInvalidError(self.path, reason="not a Python file")
 
-    def export(self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None) -> bool:
+    def export(self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None) -> NotebookExportResult:
         """Export the notebook to HTML/WebAssembly format.
 
         This method exports the marimo notebook to HTML/WebAssembly format.
@@ -124,29 +132,30 @@ class Notebook:
         suitable for interactive notebooks.
 
         Args:
-            output_dir (Path): Directory where the exported HTML file will be saved
-            sandbox (bool): Whether to run the notebook in a sandbox. Defaults to True.
-            bin_path (Path | None): The directory where the executable is located. Defaults to None.
+            output_dir: Directory where the exported HTML file will be saved.
+            sandbox: Whether to run the notebook in a sandbox. Defaults to True.
+            bin_path: The directory where the executable is located. Defaults to None.
 
         Returns:
-            bool: True if export succeeded, False otherwise
+            NotebookExportResult indicating success or failure with details.
 
         """
         executable = "uvx"
+        exe: str | None = None
+
         if bin_path:
             # Construct the full executable path
             # Use shutil.which to find it with platform-specific extensions (like .exe on Windows)
-            # by passing the full path as the command and using the bin_path in the PATH
             exe = shutil.which(executable, path=str(bin_path))
             if not exe:
                 # Fallback: try constructing the path directly
-                # This handles cases where shutil.which doesn't work with a single directory
                 exe_path = bin_path / executable
                 if exe_path.is_file() and os.access(exe_path, os.X_OK):
                     exe = str(exe_path)
                 else:
-                    logger.error(f"Could not find {executable} in {bin_path}")
-                    return False
+                    error = ExportExecutableNotFoundError(executable, bin_path)
+                    logger.error(str(error))
+                    return NotebookExportResult.failed(self.path, error)
         else:
             exe = executable
 
@@ -156,14 +165,25 @@ class Notebook:
         else:
             cmd.append("--no-sandbox")
 
+        # Create the full output path and ensure the directory exists
+        output_file: Path = output_dir / f"{self.path.stem}.html"
+
         try:
-            # Create the full output path and ensure the directory exists
-            output_file: Path = output_dir / f"{self.path.stem}.html"
             output_file.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            error = ExportSubprocessError(
+                notebook_path=self.path,
+                command=cmd,
+                return_code=-1,
+                stderr=f"Failed to create output directory: {e}",
+            )
+            logger.error(str(error))
+            return NotebookExportResult.failed(self.path, error)
 
-            # Add the notebook path and output file to command
-            cmd.extend([str(self.path), "-o", str(output_file)])
+        # Add the notebook path and output file to command
+        cmd.extend([str(self.path), "-o", str(output_file)])
 
+        try:
             # Run marimo export command
             logger.debug(f"Running command: {cmd}")
             result = subprocess.run(cmd, capture_output=True, text=True)
@@ -177,14 +197,32 @@ class Notebook:
                 nb_logger.warning(f"stderr:\n{result.stderr.strip()}")
 
             if result.returncode != 0:
-                nb_logger.error(f"Error exporting {self.path}")
-                return False
+                error = ExportSubprocessError(
+                    notebook_path=self.path,
+                    command=cmd,
+                    return_code=result.returncode,
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                )
+                nb_logger.error(str(error))
+                return NotebookExportResult.failed(self.path, error)
 
-            return True
-        except Exception as e:
-            # Handle unexpected errors
-            logger.error(f"Unexpected error exporting {self.path}: {e}")
-            return False
+            return NotebookExportResult.succeeded(self.path, output_file)
+
+        except FileNotFoundError as e:
+            # Executable not found in PATH
+            error = ExportExecutableNotFoundError(executable)
+            logger.error(f"{error}: {e}")
+            return NotebookExportResult.failed(self.path, error)
+        except subprocess.SubprocessError as e:
+            error = ExportSubprocessError(
+                notebook_path=self.path,
+                command=cmd,
+                return_code=-1,
+                stderr=str(e),
+            )
+            logger.error(str(error))
+            return NotebookExportResult.failed(self.path, error)
 
     @property
     def display_name(self) -> str:

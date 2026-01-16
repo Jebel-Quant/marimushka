@@ -30,6 +30,14 @@ from rich import print as rich_print
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
 from . import __version__
+from .exceptions import (
+    BatchExportResult,
+    IndexWriteError,
+    NotebookExportResult,
+    TemplateInvalidError,
+    TemplateNotFoundError,
+    TemplateRenderError,
+)
 from .notebook import Kind, Notebook, folder2notebooks
 
 # Configure logger
@@ -51,14 +59,14 @@ def _validate_template(template_path: Path) -> None:
         template_path: Path to the template file.
 
     Raises:
-        FileNotFoundError: If the template file does not exist.
-        ValueError: If the template file does not have a .j2 extension.
+        TemplateNotFoundError: If the template file does not exist.
+        TemplateInvalidError: If the template path is not a file.
 
     """
     if not template_path.exists():
-        raise FileNotFoundError(f"Template file not found: {template_path}")
+        raise TemplateNotFoundError(template_path)
     if not template_path.is_file():
-        raise ValueError(f"Template path is not a file: {template_path}")
+        raise TemplateInvalidError(template_path, reason="path is not a file")
     if template_path.suffix not in (".j2", ".jinja2"):
         logger.warning(f"Template file '{template_path}' does not have .j2 or .jinja2 extension")
 
@@ -68,7 +76,7 @@ def _export_notebook(
     output_dir: Path,
     sandbox: bool,
     bin_path: Path | None,
-) -> tuple[Notebook, bool]:
+) -> NotebookExportResult:
     """Export a single notebook and return the result.
 
     Args:
@@ -78,11 +86,10 @@ def _export_notebook(
         bin_path: Custom path to uvx executable.
 
     Returns:
-        Tuple of (notebook, success_bool).
+        NotebookExportResult with success status and details.
 
     """
-    success = notebook.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
-    return notebook, success
+    return notebook.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
 
 
 def _export_notebooks_parallel(
@@ -93,7 +100,7 @@ def _export_notebooks_parallel(
     max_workers: int = 4,
     progress: Progress | None = None,
     task_id: int | None = None,
-) -> tuple[int, int]:
+) -> BatchExportResult:
     """Export notebooks in parallel using a thread pool.
 
     Args:
@@ -106,30 +113,29 @@ def _export_notebooks_parallel(
         task_id: Optional task ID for progress updates.
 
     Returns:
-        Tuple of (success_count, failure_count).
+        BatchExportResult containing individual results and summary statistics.
 
     """
-    if not notebooks:
-        return 0, 0
+    batch_result = BatchExportResult()
 
-    success_count = 0
-    failure_count = 0
+    if not notebooks:
+        return batch_result
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_export_notebook, nb, output_dir, sandbox, bin_path): nb for nb in notebooks}
 
         for future in as_completed(futures):
-            notebook, success = future.result()
-            if success:
-                success_count += 1
-            else:
-                failure_count += 1
-                logger.error(f"Failed to export: {notebook.path.name}")
+            result = future.result()
+            batch_result.add(result)
+
+            if not result.success:
+                error_msg = str(result.error) if result.error else "Unknown error"
+                logger.error(f"Failed to export {result.notebook_path.name}: {error_msg}")
 
             if progress and task_id is not None:
                 progress.advance(task_id)
 
-    return success_count, failure_count
+    return batch_result
 
 
 @app.callback(invoke_without_command=True)
@@ -173,6 +179,10 @@ def _generate_index(
     Returns:
         The rendered HTML content as a string.
 
+    Raises:
+        TemplateRenderError: If the template fails to render.
+        IndexWriteError: If the index file cannot be written.
+
     """
     # Initialize empty lists if None is provided
     notebooks = notebooks or []
@@ -180,6 +190,7 @@ def _generate_index(
     notebooks_wasm = notebooks_wasm or []
 
     total_notebooks = len(notebooks) + len(apps) + len(notebooks_wasm)
+    combined_batch_result = BatchExportResult()
 
     if total_notebooks > 0:
         with Progress(
@@ -200,34 +211,46 @@ def _generate_index(
                     (notebooks_wasm, output / "notebooks_wasm"),
                 ]
 
-                total_success = 0
-                total_failure = 0
-
                 for nb_list, out_dir in all_notebooks:
                     if nb_list:
-                        success, failure = _export_notebooks_parallel(
+                        batch_result = _export_notebooks_parallel(
                             nb_list, out_dir, sandbox, bin_path, max_workers, progress, task
                         )
-                        total_success += success
-                        total_failure += failure
+                        for result in batch_result.results:
+                            combined_batch_result.add(result)
 
-                if total_failure > 0:
-                    logger.warning(f"Export completed: {total_success} succeeded, {total_failure} failed")
+                if combined_batch_result.failed > 0:
+                    logger.warning(
+                        f"Export completed: {combined_batch_result.succeeded} succeeded, "
+                        f"{combined_batch_result.failed} failed"
+                    )
+                    for failure in combined_batch_result.failures:
+                        error_detail = str(failure.error) if failure.error else "Unknown error"
+                        logger.debug(f"  - {failure.notebook_path.name}: {error_detail}")
             else:
                 # Sequential export with progress bar
                 task = progress.add_task("[green]Exporting notebooks...", total=total_notebooks)
 
                 for nb in notebooks:
-                    nb.export(output_dir=output / "notebooks", sandbox=sandbox, bin_path=bin_path)
+                    result = nb.export(output_dir=output / "notebooks", sandbox=sandbox, bin_path=bin_path)
+                    combined_batch_result.add(result)
                     progress.advance(task)
 
                 for nb in apps:
-                    nb.export(output_dir=output / "apps", sandbox=sandbox, bin_path=bin_path)
+                    result = nb.export(output_dir=output / "apps", sandbox=sandbox, bin_path=bin_path)
+                    combined_batch_result.add(result)
                     progress.advance(task)
 
                 for nb in notebooks_wasm:
-                    nb.export(output_dir=output / "notebooks_wasm", sandbox=sandbox, bin_path=bin_path)
+                    result = nb.export(output_dir=output / "notebooks_wasm", sandbox=sandbox, bin_path=bin_path)
+                    combined_batch_result.add(result)
                     progress.advance(task)
+
+                if combined_batch_result.failed > 0:
+                    logger.warning(
+                        f"Export completed: {combined_batch_result.succeeded} succeeded, "
+                        f"{combined_batch_result.failed} failed"
+                    )
 
     # Create the full path for the index.html file
     index_path: Path = Path(output) / "index.html"
@@ -239,7 +262,6 @@ def _generate_index(
     template_dir = template_file.parent
     template_name = template_file.name
 
-    rendered_html = ""
     try:
         # Create Jinja2 environment and load template
         env = jinja2.Environment(
@@ -253,16 +275,16 @@ def _generate_index(
             apps=apps,
             notebooks_wasm=notebooks_wasm,
         )
-
-        # Write the rendered HTML to the index.html file
-        try:
-            with Path.open(index_path, "w") as f:
-                f.write(rendered_html)
-            logger.info(f"Successfully generated index file at {index_path}")
-        except OSError as e:
-            logger.error(f"Error writing index file to {index_path}: {e}")
     except jinja2.exceptions.TemplateError as e:
-        logger.error(f"Error rendering template {template_file}: {e}")
+        raise TemplateRenderError(template_file, e) from e
+
+    # Write the rendered HTML to the index.html file
+    try:
+        with Path.open(index_path, "w") as f:
+            f.write(rendered_html)
+        logger.info(f"Successfully generated index file at {index_path}")
+    except OSError as e:
+        raise IndexWriteError(index_path, e) from e
 
     return rendered_html
 
@@ -284,8 +306,10 @@ def _main_impl(
     It is called by the main() function, which handles the Typer options.
 
     Raises:
-        FileNotFoundError: If the template file does not exist.
-        ValueError: If the template path is not a file.
+        TemplateNotFoundError: If the template file does not exist.
+        TemplateInvalidError: If the template path is not a file.
+        TemplateRenderError: If the template fails to render.
+        IndexWriteError: If the index file cannot be written.
 
     """
     logger.info("Starting marimushka build process")
@@ -368,8 +392,10 @@ def main(
         Rendered HTML content as string, empty if no notebooks found.
 
     Raises:
-        FileNotFoundError: If the template file does not exist.
-        ValueError: If the template path is not a file.
+        TemplateNotFoundError: If the template file does not exist.
+        TemplateInvalidError: If the template path is not a file.
+        TemplateRenderError: If the template fails to render.
+        IndexWriteError: If the index file cannot be written.
 
     """
     # Call the implementation function with the provided parameters and return its result

@@ -16,6 +16,15 @@ import jinja2
 import pytest
 import typer
 
+from marimushka.exceptions import (
+    BatchExportResult,
+    ExportSubprocessError,
+    IndexWriteError,
+    NotebookExportResult,
+    TemplateInvalidError,
+    TemplateNotFoundError,
+    TemplateRenderError,
+)
 from marimushka.export import (
     _export_notebook,
     _export_notebooks_parallel,
@@ -108,8 +117,9 @@ class TestValidateTemplate:
         template_file = tmp_path / "nonexistent.html.j2"
 
         # Execute and Assert
-        with pytest.raises(FileNotFoundError, match="Template file not found"):
+        with pytest.raises(TemplateNotFoundError) as exc_info:
             _validate_template(template_file)
+        assert exc_info.value.template_path == template_file
 
     def test_validate_template_not_a_file(self, tmp_path):
         """Test template validation when path is a directory."""
@@ -118,8 +128,10 @@ class TestValidateTemplate:
         template_dir.mkdir()
 
         # Execute and Assert
-        with pytest.raises(ValueError, match="Template path is not a file"):
+        with pytest.raises(TemplateInvalidError) as exc_info:
             _validate_template(template_dir)
+        assert exc_info.value.template_path == template_dir
+        assert "not a file" in exc_info.value.reason
 
     def test_validate_template_wrong_extension_warning(self, tmp_path, caplog):
         """Test template validation warns on wrong extension."""
@@ -141,30 +153,32 @@ class TestExportNotebook:
         """Test successful notebook export."""
         # Setup
         mock_notebook = MagicMock()
-        mock_notebook.export.return_value = True
+        mock_result = NotebookExportResult.succeeded(Path("/nb.py"), Path("/output/nb.html"))
+        mock_notebook.export.return_value = mock_result
         output_dir = Path("/output")
 
         # Execute
-        notebook, success = _export_notebook(mock_notebook, output_dir, sandbox=True, bin_path=None)
+        result = _export_notebook(mock_notebook, output_dir, sandbox=True, bin_path=None)
 
         # Assert
-        assert notebook is mock_notebook
-        assert success is True
+        assert result is mock_result
+        assert result.success is True
         mock_notebook.export.assert_called_once_with(output_dir=output_dir, sandbox=True, bin_path=None)
 
     def test_export_notebook_failure(self):
         """Test notebook export failure."""
         # Setup
         mock_notebook = MagicMock()
-        mock_notebook.export.return_value = False
+        mock_result = NotebookExportResult.failed(Path("/nb.py"), ExportSubprocessError(Path("/nb.py"), ["cmd"], 1))
+        mock_notebook.export.return_value = mock_result
         output_dir = Path("/output")
 
         # Execute
-        notebook, success = _export_notebook(mock_notebook, output_dir, sandbox=False, bin_path=Path("/bin"))
+        result = _export_notebook(mock_notebook, output_dir, sandbox=False, bin_path=Path("/bin"))
 
         # Assert
-        assert notebook is mock_notebook
-        assert success is False
+        assert result is mock_result
+        assert result.success is False
 
 
 class TestExportNotebooksParallel:
@@ -173,27 +187,31 @@ class TestExportNotebooksParallel:
     def test_export_notebooks_parallel_empty(self):
         """Test parallel export with empty list."""
         # Execute
-        success, failure = _export_notebooks_parallel([], Path("/output"), True, None)
+        result = _export_notebooks_parallel([], Path("/output"), True, None)
 
         # Assert
-        assert success == 0
-        assert failure == 0
+        assert isinstance(result, BatchExportResult)
+        assert result.succeeded == 0
+        assert result.failed == 0
 
     def test_export_notebooks_parallel_success(self):
         """Test successful parallel export."""
         # Setup
         mock_notebooks = []
-        for _ in range(3):
+        for i in range(3):
             nb = MagicMock()
-            nb.export.return_value = True
+            nb.path = Path(f"/nb{i}.py")
+            nb.export.return_value = NotebookExportResult.succeeded(Path(f"/nb{i}.py"), Path(f"/output/nb{i}.html"))
             mock_notebooks.append(nb)
 
         # Execute
-        success, failure = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
+        result = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
 
         # Assert
-        assert success == 3
-        assert failure == 0
+        assert isinstance(result, BatchExportResult)
+        assert result.succeeded == 3
+        assert result.failed == 0
+        assert result.all_succeeded is True
 
     def test_export_notebooks_parallel_mixed_results(self):
         """Test parallel export with some failures."""
@@ -201,16 +219,29 @@ class TestExportNotebooksParallel:
         mock_notebooks = []
         for i in range(3):
             nb = MagicMock()
-            nb.path.name = f"notebook{i}.py"
-            nb.export.return_value = i != 1  # Second notebook fails
+            # Create a mock path with a name attribute
+            mock_path = MagicMock()
+            mock_path.name = f"notebook{i}.py"
+            nb.path = mock_path
+            if i != 1:  # Second notebook fails
+                nb.export.return_value = NotebookExportResult.succeeded(
+                    Path(f"/notebook{i}.py"), Path(f"/output/notebook{i}.html")
+                )
+            else:
+                nb.export.return_value = NotebookExportResult.failed(
+                    Path(f"/notebook{i}.py"),
+                    ExportSubprocessError(Path(f"/notebook{i}.py"), ["cmd"], 1),
+                )
             mock_notebooks.append(nb)
 
         # Execute
-        success, failure = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
+        result = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
 
         # Assert
-        assert success == 2
-        assert failure == 1
+        assert isinstance(result, BatchExportResult)
+        assert result.succeeded == 2
+        assert result.failed == 1
+        assert result.all_succeeded is False
 
 
 class TestGenerateIndex:
@@ -224,12 +255,19 @@ class TestGenerateIndex:
         output_dir = tmp_path / "output"
         template_file = Path("template_dir/template.html.j2")
 
-        # Create mock notebooks and apps
+        # Create mock notebooks and apps with proper return values
         mock_notebook1 = MagicMock()
         mock_notebook2 = MagicMock()
         mock_app1 = MagicMock()
-
         mock_notebook1_wasm = MagicMock()
+
+        # Set up export return values
+        mock_notebook1.export.return_value = NotebookExportResult.succeeded(Path("/nb1.py"), Path("/output/nb1.html"))
+        mock_notebook2.export.return_value = NotebookExportResult.succeeded(Path("/nb2.py"), Path("/output/nb2.html"))
+        mock_app1.export.return_value = NotebookExportResult.succeeded(Path("/app1.py"), Path("/output/app1.html"))
+        mock_notebook1_wasm.export.return_value = NotebookExportResult.succeeded(
+            Path("/nb_wasm1.py"), Path("/output/nb_wasm1.html")
+        )
 
         notebooks = [mock_notebook1, mock_notebook2]
         apps = [mock_app1]
@@ -276,6 +314,7 @@ class TestGenerateIndex:
 
         # Create mock notebooks
         mock_notebook = MagicMock()
+        mock_notebook.export.return_value = NotebookExportResult.succeeded(Path("/nb.py"), Path("/output/nb.html"))
         notebooks = [mock_notebook]
         apps = []
 
@@ -284,16 +323,17 @@ class TestGenerateIndex:
         mock_env.return_value.get_template.return_value = mock_template
         mock_template.render.return_value = "<html>Rendered content</html>"
 
-        # Execute and Assert (should not raise an exception)
-        result = _generate_index(
-            output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps, parallel=False
-        )
+        # Execute and Assert - now raises IndexWriteError
+        with pytest.raises(IndexWriteError) as exc_info:
+            _generate_index(
+                output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps, parallel=False
+            )
 
-        # Check that export was still called
+        # Check that the error contains the path
+        assert exc_info.value.index_path == output_dir / "index.html"
+
+        # Check that export was still called before the error
         mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
-
-        # Check that the function returns the rendered HTML even if there's a file error
-        assert result == "<html>Rendered content</html>"
 
     @patch("jinja2.Environment")
     @patch.object(Path, "mkdir")
@@ -305,22 +345,24 @@ class TestGenerateIndex:
 
         # Create mock notebooks
         mock_notebook = MagicMock()
+        mock_notebook.export.return_value = NotebookExportResult.succeeded(Path("/nb.py"), Path("/output/nb.html"))
         notebooks = [mock_notebook]
         apps = []
 
         # Mock the template error
         mock_env.side_effect = jinja2.exceptions.TemplateError("Template error")
 
-        # Execute and Assert (should not raise an exception)
-        result = _generate_index(
-            output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps, parallel=False
-        )
+        # Execute and Assert - now raises TemplateRenderError
+        with pytest.raises(TemplateRenderError) as exc_info:
+            _generate_index(
+                output=output_dir, template_file=template_file, notebooks=notebooks, apps=apps, parallel=False
+            )
 
-        # Check that export was still called
+        # Check that the error contains the template path
+        assert exc_info.value.template_path == template_file
+
+        # Check that export was still called before the template error
         mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
-
-        # Check that the function returns an empty string when there's a template error
-        assert result == ""
 
     def test_generate_index_no_notebooks(self, tmp_path):
         """Test index generation with no notebooks."""
@@ -459,8 +501,9 @@ class TestMain:
         nonexistent_template = tmp_path / "nonexistent.html.j2"
 
         # Execute and Assert
-        with pytest.raises(FileNotFoundError, match="Template file not found"):
+        with pytest.raises(TemplateNotFoundError) as exc_info:
             main(template=nonexistent_template)
+        assert exc_info.value.template_path == nonexistent_template
 
 
 class TestCallback:
