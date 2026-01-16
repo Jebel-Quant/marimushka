@@ -220,7 +220,7 @@ class TestIndexWriteError:
     def test_attributes(self):
         """Test that attributes are set correctly."""
         path = Path("/output/index.html")
-        original = IOError("disk full")
+        original = OSError("disk full")
         error = IndexWriteError(path, original)
         assert error.index_path == path
         assert error.original_error is original
@@ -277,9 +277,7 @@ class TestBatchExportResult:
         batch = BatchExportResult()
 
         success = NotebookExportResult.succeeded(Path("/nb1.py"), Path("/out1.html"))
-        failure = NotebookExportResult.failed(
-            Path("/nb2.py"), ExportSubprocessError(Path("/nb2.py"), ["cmd"], 1)
-        )
+        failure = NotebookExportResult.failed(Path("/nb2.py"), ExportSubprocessError(Path("/nb2.py"), ["cmd"], 1))
 
         batch.add(success)
         batch.add(failure)
@@ -295,9 +293,7 @@ class TestBatchExportResult:
 
         s1 = NotebookExportResult.succeeded(Path("/nb1.py"), Path("/out1.html"))
         s2 = NotebookExportResult.succeeded(Path("/nb2.py"), Path("/out2.html"))
-        f1 = NotebookExportResult.failed(
-            Path("/nb3.py"), ExportSubprocessError(Path("/nb3.py"), ["cmd"], 1)
-        )
+        f1 = NotebookExportResult.failed(Path("/nb3.py"), ExportSubprocessError(Path("/nb3.py"), ["cmd"], 1))
 
         batch.add(s1)
         batch.add(s2)
@@ -321,11 +317,7 @@ class TestBatchExportResult:
         """Test all_succeeded when some exports fail."""
         batch = BatchExportResult()
         batch.add(NotebookExportResult.succeeded(Path("/nb1.py"), Path("/out1.html")))
-        batch.add(
-            NotebookExportResult.failed(
-                Path("/nb2.py"), ExportSubprocessError(Path("/nb2.py"), ["cmd"], 1)
-            )
-        )
+        batch.add(NotebookExportResult.failed(Path("/nb2.py"), ExportSubprocessError(Path("/nb2.py"), ["cmd"], 1)))
 
         assert batch.all_succeeded is False
 
@@ -339,7 +331,7 @@ class TestExceptionCatching:
             TemplateNotFoundError(Path("/t.j2")),
             NotebookNotFoundError(Path("/n.py")),
             ExportExecutableNotFoundError("uvx"),
-            IndexWriteError(Path("/i.html"), IOError()),
+            IndexWriteError(Path("/i.html"), OSError()),
         ]
 
         for error in errors:
