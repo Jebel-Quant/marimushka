@@ -205,5 +205,8 @@ def folder2notebooks(folder: Path | str | None, kind: Kind = Kind.NB) -> list[No
     # which files are included here?
     notebooks = list(Path(folder).glob("*.py"))
 
+    # Sort notebooks alphabetically by filename to ensure consistent ordering
+    notebooks.sort()
+
     # uvx marimo export html-wasm / html --sandbox (--mode edit/run) (
     return [Notebook(path=nb, kind=kind) for nb in notebooks]
