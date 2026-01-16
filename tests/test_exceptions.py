@@ -18,7 +18,6 @@ from marimushka.exceptions import (
     NotebookExportResult,
     NotebookInvalidError,
     NotebookNotFoundError,
-    OutputDirectoryError,
     OutputError,
     TemplateError,
     TemplateInvalidError,
@@ -55,7 +54,6 @@ class TestExceptionHierarchy:
 
     def test_output_error_hierarchy(self):
         """Test output error hierarchy."""
-        assert issubclass(OutputDirectoryError, OutputError)
         assert issubclass(IndexWriteError, OutputError)
 
 
@@ -199,19 +197,6 @@ class TestExportSubprocessError:
         assert len(error.stderr) == 500
         # But message is truncated
         assert len(str(error)) < 500
-
-
-class TestOutputDirectoryError:
-    """Tests for OutputDirectoryError."""
-
-    def test_attributes(self):
-        """Test that attributes are set correctly."""
-        path = Path("/output")
-        original = PermissionError("access denied")
-        error = OutputDirectoryError(path, original)
-        assert error.output_path == path
-        assert error.original_error is original
-        assert "access denied" in str(error)
 
 
 class TestIndexWriteError:

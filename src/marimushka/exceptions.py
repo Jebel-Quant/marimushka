@@ -225,28 +225,6 @@ class OutputError(MarimushkaError):
     pass
 
 
-class OutputDirectoryError(OutputError):
-    """Raised when the output directory cannot be created or accessed.
-
-    Attributes:
-        output_path: Path to the output directory.
-        original_error: The underlying OS error.
-
-    """
-
-    def __init__(self, output_path: Path, original_error: Exception) -> None:
-        """Initialize the exception.
-
-        Args:
-            output_path: Path to the output directory.
-            original_error: The underlying OS error.
-
-        """
-        self.output_path = output_path
-        self.original_error = original_error
-        super().__init__(f"Cannot create/access output directory {output_path}: {original_error}")
-
-
 class IndexWriteError(OutputError):
     """Raised when the index.html file cannot be written.
 

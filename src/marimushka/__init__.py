@@ -13,7 +13,6 @@ from .exceptions import (
     NotebookExportResult,
     NotebookInvalidError,
     NotebookNotFoundError,
-    OutputDirectoryError,
     OutputError,
     TemplateError,
     TemplateInvalidError,
@@ -42,7 +41,6 @@ __all__ = [
     "ExportSubprocessError",
     # Output exceptions
     "OutputError",
-    "OutputDirectoryError",
     "IndexWriteError",
     # Result types
     "NotebookExportResult",

@@ -631,3 +631,308 @@ class TestWatchCommand:
         assert "watch" in commands
         assert "export" in commands
         assert "version" in commands
+
+    @patch("marimushka.export.rich_print")
+    def test_watch_no_directories_to_watch(self, mock_print, tmp_path):
+        """Test watch command exits when no directories exist to watch."""
+        from marimushka.export import watch
+
+        # Use non-existent paths
+        with pytest.raises(typer.Exit) as exc_info:
+            watch(
+                output=str(tmp_path / "_site"),
+                template=str(tmp_path / "nonexistent_template.j2"),
+                notebooks=str(tmp_path / "nonexistent_notebooks"),
+                apps=str(tmp_path / "nonexistent_apps"),
+                notebooks_wasm=str(tmp_path / "nonexistent_wasm"),
+                sandbox=True,
+                bin_path=None,
+                parallel=True,
+                max_workers=4,
+            )
+        assert exc_info.value.exit_code == 1
+        # Verify warning was printed
+        mock_print.assert_any_call("[bold yellow]Warning:[/bold yellow] No directories to watch!")
+
+    @patch("marimushka.export.main")
+    @patch("marimushka.export.rich_print")
+    def test_watch_initial_export_called(self, mock_print, mock_main, tmp_path):
+        """Test watch command calls initial export before watching."""
+        # Setup directories
+        notebooks_dir = tmp_path / "notebooks"
+        notebooks_dir.mkdir()
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_file = template_dir / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Create a generator that raises KeyboardInterrupt immediately
+        def mock_watch_generator(*args, **kwargs):
+            raise KeyboardInterrupt
+
+        with patch("watchfiles.watch", mock_watch_generator):
+            from marimushka.export import watch
+
+            watch(
+                output=str(tmp_path / "_site"),
+                template=str(template_file),
+                notebooks=str(notebooks_dir),
+                apps=str(tmp_path / "nonexistent_apps"),
+                notebooks_wasm=str(tmp_path / "nonexistent_wasm"),
+                sandbox=True,
+                bin_path=None,
+                parallel=True,
+                max_workers=4,
+            )
+
+        # Verify initial export was called with correct parameters
+        mock_main.assert_called_once_with(
+            output=str(tmp_path / "_site"),
+            template=str(template_file),
+            notebooks=str(notebooks_dir),
+            apps=str(tmp_path / "nonexistent_apps"),
+            notebooks_wasm=str(tmp_path / "nonexistent_wasm"),
+            sandbox=True,
+            bin_path=None,
+            parallel=True,
+            max_workers=4,
+        )
+
+    @patch("marimushka.export.main")
+    @patch("marimushka.export.rich_print")
+    def test_watch_keyboard_interrupt_handled(self, mock_print, mock_main, tmp_path):
+        """Test watch command handles KeyboardInterrupt gracefully."""
+        # Setup directories
+        notebooks_dir = tmp_path / "notebooks"
+        notebooks_dir.mkdir()
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_file = template_dir / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Create a generator that raises KeyboardInterrupt
+        def mock_watch_generator(*args, **kwargs):
+            raise KeyboardInterrupt
+
+        with patch("watchfiles.watch", mock_watch_generator):
+            from marimushka.export import watch
+
+            # Should not raise, should handle gracefully
+            watch(
+                output=str(tmp_path / "_site"),
+                template=str(template_file),
+                notebooks=str(notebooks_dir),
+                apps=str(tmp_path / "apps"),
+                notebooks_wasm=str(tmp_path / "wasm"),
+                sandbox=True,
+                bin_path=None,
+                parallel=True,
+                max_workers=4,
+            )
+
+        # Verify the "stopped" message was printed
+        mock_print.assert_any_call("\n[bold green]Watch mode stopped.[/bold green]")
+
+    @patch("marimushka.export.main")
+    @patch("marimushka.export.rich_print")
+    def test_watch_reexports_on_change(self, mock_print, mock_main, tmp_path):
+        """Test watch command re-exports when files change."""
+        # Setup directories
+        notebooks_dir = tmp_path / "notebooks"
+        notebooks_dir.mkdir()
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_file = template_dir / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Track call count
+
+        # Create a generator that yields one change then raises KeyboardInterrupt
+        def mock_watch_generator(*args, **kwargs):
+            # Yield one set of changes
+            yield [("modified", str(notebooks_dir / "test.py"))]
+            # Then stop
+            raise KeyboardInterrupt
+
+        with patch("watchfiles.watch", mock_watch_generator):
+            from marimushka.export import watch
+
+            watch(
+                output=str(tmp_path / "_site"),
+                template=str(template_file),
+                notebooks=str(notebooks_dir),
+                apps=str(tmp_path / "apps"),
+                notebooks_wasm=str(tmp_path / "wasm"),
+                sandbox=True,
+                bin_path=None,
+                parallel=True,
+                max_workers=4,
+            )
+
+        # Verify main was called twice: once for initial export, once for re-export
+        assert mock_main.call_count == 2
+
+    @patch("marimushka.export.main")
+    @patch("marimushka.export.rich_print")
+    def test_watch_shows_changed_files(self, mock_print, mock_main, tmp_path):
+        """Test watch command displays changed files."""
+        # Setup directories
+        notebooks_dir = tmp_path / "notebooks"
+        notebooks_dir.mkdir()
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_file = template_dir / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Create a generator that yields changes with multiple files
+        def mock_watch_generator(*args, **kwargs):
+            yield [
+                ("modified", "/path/to/file1.py"),
+                ("modified", "/path/to/file2.py"),
+                ("modified", "/path/to/file3.py"),
+            ]
+            raise KeyboardInterrupt
+
+        with patch("watchfiles.watch", mock_watch_generator):
+            from marimushka.export import watch
+
+            watch(
+                output=str(tmp_path / "_site"),
+                template=str(template_file),
+                notebooks=str(notebooks_dir),
+                apps=str(tmp_path / "apps"),
+                notebooks_wasm=str(tmp_path / "wasm"),
+                sandbox=True,
+                bin_path=None,
+                parallel=True,
+                max_workers=4,
+            )
+
+        # Verify changed files were printed
+        mock_print.assert_any_call("\n[bold yellow]Detected changes:[/bold yellow]")
+        mock_print.assert_any_call("  [dim]/path/to/file1.py[/dim]")
+
+    @patch("marimushka.export.main")
+    @patch("marimushka.export.rich_print")
+    def test_watch_truncates_long_change_list(self, mock_print, mock_main, tmp_path):
+        """Test watch command truncates list when more than 5 files change."""
+        # Setup directories
+        notebooks_dir = tmp_path / "notebooks"
+        notebooks_dir.mkdir()
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_file = template_dir / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Create a generator that yields changes with many files
+        def mock_watch_generator(*args, **kwargs):
+            yield [("modified", f"/path/to/file{i}.py") for i in range(10)]
+            raise KeyboardInterrupt
+
+        with patch("watchfiles.watch", mock_watch_generator):
+            from marimushka.export import watch
+
+            watch(
+                output=str(tmp_path / "_site"),
+                template=str(template_file),
+                notebooks=str(notebooks_dir),
+                apps=str(tmp_path / "apps"),
+                notebooks_wasm=str(tmp_path / "wasm"),
+                sandbox=True,
+                bin_path=None,
+                parallel=True,
+                max_workers=4,
+            )
+
+        # Verify truncation message was printed (10 files - 5 shown = 5 more)
+        mock_print.assert_any_call("  [dim]... and 5 more[/dim]")
+
+    @patch("marimushka.export.main")
+    @patch("marimushka.export.rich_print")
+    def test_watch_with_custom_parameters(self, mock_print, mock_main, tmp_path):
+        """Test watch command passes all parameters correctly."""
+        # Setup directories
+        notebooks_dir = tmp_path / "notebooks"
+        notebooks_dir.mkdir()
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_file = template_dir / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        bin_path_dir = tmp_path / "bin"
+        bin_path_dir.mkdir()
+
+        def mock_watch_generator(*args, **kwargs):
+            raise KeyboardInterrupt
+
+        with patch("watchfiles.watch", mock_watch_generator):
+            from marimushka.export import watch
+
+            watch(
+                output=str(tmp_path / "custom_output"),
+                template=str(template_file),
+                notebooks=str(notebooks_dir),
+                apps=str(tmp_path / "custom_apps"),
+                notebooks_wasm=str(tmp_path / "custom_wasm"),
+                sandbox=False,
+                bin_path=str(bin_path_dir),
+                parallel=False,
+                max_workers=8,
+            )
+
+        # Verify main was called with correct custom parameters
+        mock_main.assert_called_once_with(
+            output=str(tmp_path / "custom_output"),
+            template=str(template_file),
+            notebooks=str(notebooks_dir),
+            apps=str(tmp_path / "custom_apps"),
+            notebooks_wasm=str(tmp_path / "custom_wasm"),
+            sandbox=False,
+            bin_path=str(bin_path_dir),
+            parallel=False,
+            max_workers=8,
+        )
+
+    @patch("marimushka.export.main")
+    @patch("marimushka.export.rich_print")
+    def test_watch_template_parent_added_to_watch_paths(self, mock_print, mock_main, tmp_path):
+        """Test watch command adds template parent directory to watch paths."""
+        # Setup directories
+        notebooks_dir = tmp_path / "notebooks"
+        notebooks_dir.mkdir()
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        template_file = template_dir / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Track what paths are passed to watchfiles
+        watched_paths = []
+
+        def mock_watch_generator(*args, **kwargs):
+            watched_paths.extend(args)
+            raise KeyboardInterrupt
+
+        with patch("watchfiles.watch", mock_watch_generator):
+            from marimushka.export import watch
+
+            watch(
+                output=str(tmp_path / "_site"),
+                template=str(template_file),
+                notebooks=str(notebooks_dir),
+                apps=str(tmp_path / "apps"),
+                notebooks_wasm=str(tmp_path / "wasm"),
+                sandbox=True,
+                bin_path=None,
+                parallel=True,
+                max_workers=4,
+            )
+
+        # Verify template parent directory was included
+        assert template_dir in watched_paths
