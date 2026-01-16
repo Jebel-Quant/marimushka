@@ -10,7 +10,7 @@ def test_complete(resource_dir, tmp_path):
     html_output = main(
         notebooks=resource_dir / "notebooks",
         apps=resource_dir / "apps",
-        template=resource_dir / "templates" / "default.html.j2",
+        template=resource_dir / "templates" / "tailwind.html.j2",
         output=tmp_path / "output",
         notebooks_wasm=resource_dir / "notebooks_wasm",
     )
@@ -41,7 +41,7 @@ def test_no_apps(resource_dir, tmp_path):
     html_output = main(
         notebooks=resource_dir / "notebooks",
         notebooks_wasm=resource_dir / "notebooks_wasm",
-        template=resource_dir / "templates" / "default.html.j2",
+        template=resource_dir / "templates" / "tailwind.html.j2",
         output=tmp_path / "output",
     )
 

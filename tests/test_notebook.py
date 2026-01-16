@@ -9,6 +9,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from marimushka.exceptions import (
+    ExportExecutableNotFoundError,
+    ExportSubprocessError,
+    NotebookInvalidError,
+    NotebookNotFoundError,
+)
 from marimushka.notebook import Kind, Notebook
 
 
@@ -104,8 +110,9 @@ class TestNotebook:
         notebook_path = Path("nonexistent_file.py")
 
         # Mock Path.exists to return False and execute/assert
-        with patch.object(Path, "exists", return_value=False), pytest.raises(FileNotFoundError):
+        with patch.object(Path, "exists", return_value=False), pytest.raises(NotebookNotFoundError) as exc_info:
             Notebook(notebook_path)
+        assert exc_info.value.notebook_path == notebook_path
 
     def test_init_not_a_file(self):
         """Test initialization with a path that is not a file."""
@@ -116,9 +123,11 @@ class TestNotebook:
         with (
             patch.object(Path, "exists", return_value=True),
             patch.object(Path, "is_file", return_value=False),
-            pytest.raises(ValueError),
+            pytest.raises(NotebookInvalidError) as exc_info,
         ):
             Notebook(notebook_path)
+        assert exc_info.value.notebook_path == notebook_path
+        assert "not a file" in exc_info.value.reason
 
     def test_init_not_python_file(self):
         """Test initialization with a non-Python file."""
@@ -130,9 +139,10 @@ class TestNotebook:
             patch.object(Path, "exists", return_value=True),
             patch.object(Path, "is_file", return_value=True),
             patch.object(Path, "suffix", ".txt"),
-            pytest.raises(ValueError),
+            pytest.raises(NotebookInvalidError) as exc_info,
         ):
             Notebook(notebook_path)
+        assert "Python file" in exc_info.value.reason
 
     @patch("subprocess.run")
     def test_to_wasm_success(self, mock_run, resource_dir, tmp_path):
@@ -142,7 +152,7 @@ class TestNotebook:
         output_dir = tmp_path
 
         # Mock successful subprocess run
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
         # Create a notebook with mocked path validation
         with (
@@ -156,7 +166,10 @@ class TestNotebook:
             result = notebook.export(output_dir)
 
             # Assert
-            assert result is True
+            assert result.success is True
+            assert result.notebook_path == notebook_path
+            assert result.output_path is not None
+            assert result.error is None
             mock_run.assert_called_once()
 
             # Check that the command includes the notebook-specific flags
@@ -173,7 +186,7 @@ class TestNotebook:
         output_dir = tmp_path
 
         # Mock successful subprocess run
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
         # Create a notebook with mocked path validation
         with (
@@ -187,7 +200,8 @@ class TestNotebook:
             result = notebook.export(output_dir)
 
             # Assert
-            assert result is True
+            assert result.success is True
+            assert result.notebook_path == notebook_path
             mock_run.assert_called_once()
 
             # Check that the command includes the app-specific flags
@@ -218,17 +232,19 @@ class TestNotebook:
             result = notebook.export(output_dir)
 
             # Assert
-            assert result is False
+            assert result.success is False
+            assert result.error is not None
+            assert isinstance(result.error, ExportSubprocessError)
 
     @patch("subprocess.run")
-    def test_to_wasm_general_exception(self, mock_run, resource_dir, tmp_path):
-        """Test handling of general exception during export."""
+    def test_to_wasm_file_not_found_error(self, mock_run, resource_dir, tmp_path):
+        """Test handling of FileNotFoundError (executable not found) during export."""
         # Setup
         notebook_path = resource_dir / "notebooks" / "fibonacci.py"
         output_dir = tmp_path
 
-        # Mock general exception
-        mock_run.side_effect = Exception("Unexpected error")
+        # Mock FileNotFoundError (executable not in PATH)
+        mock_run.side_effect = FileNotFoundError("uvx not found")
 
         # Create a notebook with mocked path validation
         with (
@@ -242,7 +258,9 @@ class TestNotebook:
             result = notebook.export(output_dir)
 
             # Assert
-            assert result is False
+            assert result.success is False
+            assert result.error is not None
+            assert isinstance(result.error, ExportExecutableNotFoundError)
 
     @patch("subprocess.run")
     def test_export_no_sandbox(self, mock_run, resource_dir, tmp_path):
@@ -252,7 +270,7 @@ class TestNotebook:
         output_dir = tmp_path
 
         # Mock successful subprocess run
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
         # Create a notebook with mocked path validation
         with (
@@ -266,7 +284,7 @@ class TestNotebook:
             result = notebook.export(output_dir, sandbox=False)
 
             # Assert
-            assert result is True
+            assert result.success is True
             mock_run.assert_called_once()
 
             # Check that the command does NOT include --sandbox
@@ -284,7 +302,7 @@ class TestNotebook:
         executable = "uvx"
 
         # Mock successful subprocess run
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         # Mock shutil.which to return the path
         mock_which.return_value = str(bin_path / executable)
 
@@ -300,7 +318,7 @@ class TestNotebook:
             result = notebook.export(output_dir, bin_path=bin_path)
 
             # Assert
-            assert result is True
+            assert result.success is True
             mock_run.assert_called_once()
 
             # Check that the command starts with the combined path
@@ -324,7 +342,7 @@ class TestNotebook:
         # Mock os.access to return True (executable is accessible)
         mock_access.return_value = True
         # Mock successful subprocess run
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
         # Create a notebook with mocked path validation
         with (
@@ -340,7 +358,7 @@ class TestNotebook:
                 result = notebook.export(output_dir, bin_path=bin_path)
 
                 # Assert
-                assert result is True
+                assert result.success is True
                 mock_run.assert_called_once()
 
                 # Check that the command uses the fallback path
@@ -375,7 +393,10 @@ class TestNotebook:
                 result = notebook.export(output_dir, bin_path=bin_path)
 
                 # Assert
-                assert result is False
+                assert result.success is False
+                assert result.error is not None
+                assert isinstance(result.error, ExportExecutableNotFoundError)
+                assert result.error.search_path == bin_path
 
     @patch("subprocess.run")
     def test_export_nonzero_returncode(self, mock_run, resource_dir, tmp_path):
@@ -399,7 +420,11 @@ class TestNotebook:
             result = notebook.export(output_dir)
 
             # Assert
-            assert result is False
+            assert result.success is False
+            assert result.error is not None
+            assert isinstance(result.error, ExportSubprocessError)
+            assert result.error.return_code == 1
+            assert result.error.stderr == "Export failed"
             mock_run.assert_called_once()
 
     def test_display_name(self, resource_dir):

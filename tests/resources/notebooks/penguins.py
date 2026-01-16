@@ -3,9 +3,9 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "marimo==0.13.15",
-#     "polars==1.30.0",
-#     "altair==4.2.0",
+#     "marimo>=0.18",
+#     "polars>=1.30.0",
+#     "altair>=5.0",
 #     "pandas==2.3.0",
 # ]
 # ///
