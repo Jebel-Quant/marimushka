@@ -24,7 +24,6 @@ def _():
         Use the slider above to calculate the first {n.value} numbers in the Fibonacci sequence.
         """
     )
-    return
 
 
 @app.cell

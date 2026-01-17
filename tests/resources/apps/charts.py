@@ -33,7 +33,6 @@ def _():
         Try selecting the points!
         """
     )
-    return
 
 
 @app.cell
@@ -56,7 +55,6 @@ def _():
 @app.cell
 def _(chart):
     chart.value
-    return
 
 
 if __name__ == "__main__":

@@ -76,6 +76,9 @@ from .exceptions import (
 )
 from .notebook import Kind, Notebook, folder2notebooks
 
+# Maximum number of changed files to display in watch mode
+_MAX_CHANGED_FILES_TO_DISPLAY = 5
+
 # Configure logger
 logger.configure(extra={"subprocess": ""})
 logger.remove()
@@ -128,7 +131,7 @@ def _export_notebook(
     return notebook.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
 
 
-def _export_notebooks_parallel(
+def _export_notebooks_parallel(  # noqa: PLR0913
     notebooks: list[Notebook],
     output_dir: Path,
     sandbox: bool,
@@ -196,7 +199,7 @@ def callback(ctx: typer.Context) -> None:
         raise typer.Exit()
 
 
-def _generate_index(
+def _generate_index(  # noqa: PLR0912, PLR0913
     output: Path,
     template_file: Path,
     notebooks: list[Notebook] | None = None,
@@ -337,7 +340,7 @@ def _generate_index(
     return rendered_html
 
 
-def _main_impl(
+def _main_impl(  # noqa: PLR0913
     output: str | Path,
     template: str | Path,
     notebooks: str | Path,
@@ -443,7 +446,7 @@ def _main_impl(
     )
 
 
-def main(
+def main(  # noqa: PLR0913
     output: str | Path = "_site",
     template: str | Path = Path(__file__).parent / "templates" / "tailwind.html.j2",
     notebooks: str | Path = "notebooks",
@@ -492,7 +495,7 @@ def main(
 
 
 @app.command(name="export")  # type: ignore[misc]
-def _main_typer(
+def _main_typer(  # noqa: PLR0913
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
         str(Path(__file__).parent / "templates" / "tailwind.html.j2"),
@@ -548,7 +551,7 @@ def _main_typer(
 
 
 @app.command(name="watch")  # type: ignore[misc]
-def watch(
+def watch(  # noqa: PLR0913
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
         str(Path(__file__).parent / "templates" / "tailwind.html.j2"),
@@ -574,7 +577,7 @@ def watch(
     Requires the 'watchfiles' package: uv add watchfiles
     """
     try:
-        from watchfiles import watch as watchfiles_watch
+        from watchfiles import watch as watchfiles_watch  # noqa: PLC0415
     except ImportError:  # pragma: no cover
         rich_print("[bold red]Error:[/bold red] watchfiles package is required for watch mode.")
         rich_print("Install it with: [cyan]uv add watchfiles[/cyan]")
@@ -621,10 +624,10 @@ def watch(
         for changes in watchfiles_watch(*watch_paths):  # pragma: no cover
             changed_files = [str(change[1]) for change in changes]
             rich_print("\n[bold yellow]Detected changes:[/bold yellow]")
-            for f in changed_files[:5]:  # Show first 5 changed files
+            for f in changed_files[:_MAX_CHANGED_FILES_TO_DISPLAY]:
                 rich_print(f"  [dim]{f}[/dim]")
-            if len(changed_files) > 5:
-                rich_print(f"  [dim]... and {len(changed_files) - 5} more[/dim]")
+            if len(changed_files) > _MAX_CHANGED_FILES_TO_DISPLAY:
+                rich_print(f"  [dim]... and {len(changed_files) - _MAX_CHANGED_FILES_TO_DISPLAY} more[/dim]")
 
             rich_print("[bold blue]Re-exporting...[/bold blue]")
             main(

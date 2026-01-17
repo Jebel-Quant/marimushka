@@ -46,13 +46,6 @@ security: install ## run security scans (pip-audit and bandit)
 	@printf "${BLUE}[INFO] Running bandit security scan...${RESET}\n"
 	@${UVX_BIN} bandit -r ${SOURCE_FOLDER} -ll -q || true
 
-# The 'docs-coverage' target checks documentation coverage using interrogate.
-# 1. Runs interrogate on the source folder to check docstring coverage.
-# 2. Uses configuration from pyproject.toml [tool.interrogate] section.
-docs-coverage: install ## check documentation coverage with interrogate
-	@printf "${BLUE}[INFO] Checking documentation coverage...${RESET}\n"
-	@${UVX_BIN} interrogate ${SOURCE_FOLDER} -v
-
 # The 'mutate' target performs mutation testing using mutmut.
 # 1. Runs mutmut to apply mutations to the source code and check if tests fail.
 # 2. Displays the results of the mutation testing.
@@ -61,7 +54,6 @@ mutate: install ## run mutation testing with mutmut (slow, for CI or thorough te
 	@printf "${YELLOW}[WARN] This may take a while...${RESET}\n"
 	@${UVX_BIN} mutmut run --paths-to-mutate=${SOURCE_FOLDER} || true
 	@${UVX_BIN} mutmut results
-
 
 # The 'benchmark' target runs performance benchmarks using pytest-benchmark.
 # 1. Installs benchmarking dependencies (pytest-benchmark, pygal).
@@ -79,5 +71,16 @@ benchmark: install ## run performance benchmarks
 	  ${VENV}/bin/python tests/test_rhiza/benchmarks/analyze_benchmarks.py ; \
 	else \
 	  printf "${YELLOW}[WARN] Benchmarks folder not found, skipping benchmarks${RESET}\n"; \
+	fi
+
+# The 'docs-coverage' target checks documentation coverage using interrogate.
+# 1. Checks if SOURCE_FOLDER exists.
+# 2. Runs interrogate on the source folder with verbose output.
+docs-coverage: install ## check documentation coverage with interrogate
+	@if [ -d "${SOURCE_FOLDER}" ]; then \
+	  printf "${BLUE}[INFO] Checking documentation coverage in ${SOURCE_FOLDER}...${RESET}\n"; \
+	  ${VENV}/bin/python -m interrogate -vv ${SOURCE_FOLDER}; \
+	else \
+	  printf "${YELLOW}[WARN] Source folder ${SOURCE_FOLDER} not found, skipping docs-coverage${RESET}\n"; \
 	fi
 

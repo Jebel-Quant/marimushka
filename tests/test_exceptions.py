@@ -68,7 +68,7 @@ class TestMarimushkaError:
 
     def test_can_be_caught_as_exception(self):
         """Test that MarimushkaError can be caught as Exception."""
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017, PT011
             raise MarimushkaError("test")
 
 

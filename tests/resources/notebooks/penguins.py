@@ -32,7 +32,6 @@ def _():
         Analyzing the Palmer Penguins dataset using Polars and marimo.
         """
     )
-    return
 
 
 @app.cell
@@ -47,7 +46,6 @@ def _():
 def _():
     # Try to avoid reading the file with pandas
     _df = pd.read_csv(str(file))
-    return
 
 
 @app.cell
@@ -63,13 +61,11 @@ def _(df):
 
     {mo.as_html(df.describe())}
     """)
-    return
 
 
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""### Species Distribution""")
-    return
 
 
 @app.cell
@@ -90,7 +86,6 @@ def _(df):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""### Bill Dimensions Analysis""")
-    return
 
 
 @app.cell

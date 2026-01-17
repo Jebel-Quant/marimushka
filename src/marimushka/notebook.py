@@ -42,7 +42,7 @@ Example::
 import dataclasses
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 from enum import Enum
 from pathlib import Path
 
@@ -105,7 +105,8 @@ class Kind(Enum):
         try:
             return Kind(value)
         except ValueError as e:
-            raise ValueError(f"Invalid Kind: {value!r}. Must be one of {[k.value for k in Kind]}") from e
+            msg = f"Invalid Kind: {value!r}. Must be one of {[k.value for k in Kind]}"
+            raise ValueError(msg) from e
 
     @property
     def command(self) -> list[str]:
@@ -179,7 +180,9 @@ class Notebook:
         if not self.path.suffix == ".py":
             raise NotebookInvalidError(self.path, reason="not a Python file")
 
-    def export(self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None) -> NotebookExportResult:
+    def export(  # noqa: PLR0912
+        self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None
+    ) -> NotebookExportResult:
         """Export the notebook to HTML/WebAssembly format.
 
         This method exports the marimo notebook to HTML/WebAssembly format.
@@ -242,7 +245,7 @@ class Notebook:
         try:
             # Run marimo export command
             logger.debug(f"Running command: {cmd}")
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603  # nosec B603
 
             nb_logger = logger.bind(subprocess=f"[{self.path.name}] ")
 
