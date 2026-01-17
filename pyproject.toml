@@ -102,3 +102,23 @@ ignore_missing_imports = true
 paths_to_mutate = "src/marimushka/"
 tests_dir = "tests/"
 runner = "python -m pytest -x --tb=no -q"
+
+# Documentation coverage configuration
+[tool.interrogate]
+ignore-init-method = false
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = false
+ignore-nested-classes = false
+ignore-setters = false
+fail-under = 95
+exclude = ["tests", "setup.py"]
+verbose = 0
+quiet = false
+color = true
+generate-badge = "."
+badge-format = "svg"

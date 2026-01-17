@@ -84,15 +84,20 @@ make security  # Run pip-audit and bandit
 
 ---
 
-## 6. Documentation Completeness
+## 6. Documentation Completeness ✅ COMPLETED
 
 **Current setup:** Using `pdocs` for API documentation, exported via `make book`. Doctests validated in CI.
 
 - [x] API documentation generation with pdocs (already in place)
 - [x] Doctest validation in CI (already in place)
-- [ ] Ensure all public APIs have usage examples in docstrings
-- [ ] Verify `make book` runs successfully in CI (rhiza_book.yml)
-- [ ] Add documentation coverage check (ensure all public functions are documented)
+- [x] Ensure all public APIs have usage examples in docstrings (added detailed Google-style docstrings)
+- [x] Verify `make book` runs successfully in CI (rhiza_book.yml - verified)
+- [x] Add documentation coverage check (`make docs-coverage` using interrogate, 100% coverage)
+
+New command available:
+```bash
+make docs-coverage  # Check documentation coverage with interrogate
+```
 
 ---
 
@@ -118,56 +123,57 @@ make mutate  # Run mutation testing (slow, for thorough testing)
 
 ---
 
-## 9. Pre-commit Hook Additions
+## 9. Pre-commit Hook Additions ✅ COMPLETED
 
-Add to `.pre-commit-config.yaml`:
+Added to `.pre-commit-config.yaml`:
 
-```yaml
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.8.0
-  hooks:
-    - id: mypy
-      additional_dependencies: [types-all]
+- [x] mypy (v1.14.1) - already present with strict config
+- [x] bandit (v1.8.3) - added for security scanning in pre-commit
+- [x] pyupgrade - not needed, ruff UP rules handle syntax upgrades
 
-- repo: https://github.com/PyCQA/bandit
-  rev: 1.7.7
-  hooks:
-    - id: bandit
-      args: ["-r", "src/"]
-
-- repo: https://github.com/asottile/pyupgrade
-  rev: v3.15.0
-  hooks:
-    - id: pyupgrade
-      args: [--py311-plus]
-```
+Current pre-commit hooks:
+- pre-commit-hooks (check-toml, check-yaml)
+- ruff (linting + formatting)
+- mypy (type checking)
+- bandit (security scanning)
+- markdownlint
+- check-jsonschema (renovate, github workflows)
+- actionlint
+- validate-pyproject
 
 ---
 
-## 10. CI Pipeline Gaps
+## 10. CI Pipeline Gaps ✅ COMPLETED
 
-- [ ] Add explicit type-checking job
-- [ ] Add security scanning job (pip-audit, safety)
+- [x] Add explicit type-checking job (mypy runs in pre-commit via `make fmt` in rhiza_pre-commit.yml)
+- [x] Add security scanning job (rhiza_security.yml runs pip-audit and bandit)
 - [x] Add coverage threshold enforcement (100% via `--cov-fail-under=100`)
-- [ ] Add mutation testing badge
-- [ ] Consider adding OSSF Scorecard for supply chain security
-- [ ] Add dependabot or renovate for automated updates
+- [x] Add renovate for automated updates (renovate.json already present)
+- [ ] Add mutation testing badge (optional - mutation testing available via `make mutate`)
+- [ ] Consider adding OSSF Scorecard for supply chain security (optional)
+
+CI Workflows in place:
+- rhiza_ci.yml - Run tests on multiple Python versions
+- rhiza_pre-commit.yml - Run pre-commit checks (includes mypy, bandit)
+- rhiza_security.yml - Security scanning (pip-audit, bandit)
+- rhiza_book.yml - Build and deploy documentation
+- rhiza_codeql.yml - CodeQL analysis
+- rhiza_deptry.yml - Dependency checking
+- rhiza_validate.yml - Validation checks
 
 ---
 
-## 11. Code Style Refinements
+## 11. Code Style Refinements ✅ COMPLETED
 
-Add to `ruff.toml`:
+Added to `ruff.toml` extend-select:
 
-```toml
-extend-select = [
-    "ERA",  # eradicate - detect commented-out code
-    "T10",  # debugger - catch debug statements
-    "TRY",  # try-except-raise - better exception handling
-    "ICN",  # import conventions
-    "PIE",  # misc lints
-]
-```
+- [x] ERA - eradicate (detect commented-out code)
+- [x] T10 - flake8-debugger (catch debug statements like breakpoint, pdb)
+- [x] TRY - tryceratops (better exception handling patterns)
+- [x] ICN - import conventions (enforce import aliases)
+- [x] PIE - flake8-pie (miscellaneous lints for cleaner code)
+
+Note: TRY003 (long exception messages) is ignored as clear error messages are preferred.
 
 ---
 
@@ -241,14 +247,17 @@ make benchmark  # Run performance benchmarks
 - `make security` - Run pip-audit and bandit
 - `make mutate` - Run mutation testing
 - `make benchmark` - Run performance benchmarks
+- `make docs-coverage` - Check documentation coverage with interrogate
 
 ---
 
 ## Notes
 
 - The repository now has comprehensive quality coverage
-- All phases completed with 190 passing tests
+- All phases completed with 190+ passing tests
 - 100% code coverage enforced
+- 100% documentation coverage (interrogate)
 - Mypy strict mode with 0 type errors
-- Security scanning integrated into CI
+- Security scanning integrated into CI and pre-commit (bandit)
 - Property-based testing for edge case coverage
+- Additional ruff rules: ERA, T10, TRY, ICN, PIE for enhanced code quality

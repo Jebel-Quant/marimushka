@@ -2,7 +2,7 @@
 # This file is included by the main Makefile
 
 # Declare phony targets (they don't produce files)
-.PHONY: test typecheck security mutate benchmark
+.PHONY: test typecheck security mutate benchmark docs-coverage
 
 # Test-specific variables
 TESTS_FOLDER := tests
@@ -48,4 +48,8 @@ benchmark: install ## run performance benchmarks
 	else \
 	  printf "${YELLOW}[WARN] Benchmarks folder not found, skipping benchmarks${RESET}\n"; \
 	fi
+
+docs-coverage: install ## check documentation coverage with interrogate
+	@printf "${BLUE}[INFO] Checking documentation coverage...${RESET}\n"
+	@${UVX_BIN} interrogate ${SOURCE_FOLDER} -vv
 
