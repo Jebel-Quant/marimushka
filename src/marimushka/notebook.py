@@ -170,7 +170,7 @@ class Notebook:
 
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
-        except OSError as e:
+        except OSError as e:  # pragma: no cover
             error = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,

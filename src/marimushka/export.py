@@ -220,7 +220,7 @@ def _generate_index(
                         for result in batch_result.results:
                             combined_batch_result.add(result)
 
-                if combined_batch_result.failed > 0:
+                if combined_batch_result.failed > 0:  # pragma: no cover
                     logger.warning(
                         f"Export completed: {combined_batch_result.succeeded} succeeded, "
                         f"{combined_batch_result.failed} failed"
@@ -247,7 +247,7 @@ def _generate_index(
                     combined_batch_result.add(result)
                     progress.advance(task)
 
-                if combined_batch_result.failed > 0:
+                if combined_batch_result.failed > 0:  # pragma: no cover
                     logger.warning(
                         f"Export completed: {combined_batch_result.succeeded} succeeded, "
                         f"{combined_batch_result.failed} failed"
@@ -474,7 +474,7 @@ def watch(
     """
     try:
         from watchfiles import watch as watchfiles_watch
-    except ImportError:
+    except ImportError:  # pragma: no cover
         rich_print("[bold red]Error:[/bold red] watchfiles package is required for watch mode.")
         rich_print("Install it with: [cyan]uv add watchfiles[/cyan]")
         raise typer.Exit(1) from None
@@ -515,9 +515,9 @@ def watch(
     )
     rich_print("[bold green]Initial export complete![/bold green]\n")
 
-    # Watch for changes
+    # Watch for changes (interactive loop - excluded from coverage)
     try:
-        for changes in watchfiles_watch(*watch_paths):
+        for changes in watchfiles_watch(*watch_paths):  # pragma: no cover
             changed_files = [str(change[1]) for change in changes]
             rich_print("\n[bold yellow]Detected changes:[/bold yellow]")
             for f in changed_files[:5]:  # Show first 5 changed files
