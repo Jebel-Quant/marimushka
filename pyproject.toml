@@ -96,3 +96,9 @@ module = [
     "watchfiles",
 ]
 ignore_missing_imports = true
+
+# Mutation testing configuration
+[tool.mutmut]
+paths_to_mutate = "src/marimushka/"
+tests_dir = "tests/"
+runner = "python -m pytest -x --tb=no -q"
