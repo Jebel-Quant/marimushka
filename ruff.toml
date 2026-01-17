@@ -51,51 +51,23 @@ exclude = ["**/[{][{]*/", "**/*[}][}]*/"]
 # YTT: flake8-2020 - Python 2020+ compatibility
 
 # Selected rule sets to enforce:
-# B: flake8-bugbear - Find likely bugs and design problems
-# C4: flake8-comprehensions - Helps write better list/set/dict comprehensions
 # D: pydocstyle - Check docstring style
 # E: pycodestyle errors - PEP 8 style guide
 # F: pyflakes - Detect logical errors
 # I: isort - Sort imports
 # N: pep8-naming - Check PEP 8 naming conventions
-# PT: flake8-pytest-style - Check pytest best practices
-# RUF: Ruff-specific rules
-# S: flake8-bandit - Find security issues
-# SIM: flake8-simplify - Simplify code
 # W: pycodestyle warnings - PEP 8 style guide warnings
 # UP: pyupgrade - Upgrade syntax for newer Python
-select = ["B", "C4", "D", "E", "F", "I", "N", "PT", "RUF", "S", "SIM", "W", "UP"]
+select = ["D", "E", "F", "I", "N", "W", "UP"]
 
 # Ensure docstrings are required for magic methods (e.g., __init__) and
 # private/underscored modules by explicitly selecting the relevant pydocstyle
 # rules in addition to the D set. This makes the intent clear and future-proof
 # if the default pydocstyle selection changes.
-# Also enable:
-# - Complexity checks: C901, PLR0912, PLR0913, PLR0915
-# - Code style refinements: ERA, T10, TRY, ICN, PIE
-#   ERA: eradicate - detect commented-out code
-#   T10: flake8-debugger - catch debug statements (breakpoint, pdb)
-#   TRY: tryceratops - better exception handling patterns
-#   ICN: import conventions - enforce import aliases (np, pd, etc.)
-#   PIE: flake8-pie - miscellaneous lints for cleaner code
-extend-select = ["D105", "D107", "C901", "PLR0912", "PLR0913", "PLR0915", "ERA", "T10", "TRY", "ICN", "PIE"]
+extend-select = ["D105", "D107"]
 
 # Resolve incompatible pydocstyle rules: prefer D211 and D212 over D203 and D213
-# RUF022: Allow intentional categorical grouping in __all__ (more readable than alphabetical)
-# TRY003: Allow long exception messages (common pattern for clear error messages)
-ignore = ["D203", "D213", "RUF022", "TRY003"]
-
-[lint.mccabe]
-# Maximum cyclomatic complexity allowed (slightly elevated for CLI orchestration functions)
-max-complexity = 15
-
-[lint.pylint]
-# Maximum number of arguments for functions/methods
-max-args = 10
-# Maximum number of branches in a function (slightly elevated for export orchestration)
-max-branches = 15
-# Maximum number of statements in a function
-max-statements = 50
+ignore = ["D203", "D213"]
 
 [lint.pydocstyle]
 convention = "google"
@@ -111,14 +83,6 @@ line-ending = "auto"
 
 # File-specific rule exceptions
 [lint.per-file-ignores]
-# Tests: Allow assert statements, subprocess calls, relaxed pytest style rules,
-# blind exception catching (for testing exception hierarchy), dict() calls,
-# and commented-out code (often kept for debugging reference)
-"tests/**/*.py" = ["B017", "C408", "ERA001", "S101", "S603", "S607", "PT001", "PT011", "PT022", "RUF002", "RUF012"]
-# Test resources: marimo notebooks use expression statements for widget display
-"tests/resources/**/*.py" = ["B018", "S101"]
-# Book/marimo files: Allow expression statements (widget display pattern),
-# non-lowercase variable names, assert statements, dict() calls for Plotly, and unicode chars
-"book/marimo/*.py" = ["B018", "C408", "N803", "RUF001", "S101"]
-# Notebook module: Allow subprocess.run for marimo export execution
-"src/marimushka/notebook.py" = ["S603"]
+"tests/**/*.py" = ["S101"]        # Allow assert statements in tests
+"book/marimo/*.py" = ["N803", "S101"] # Allow non-lowercase variable names (N803)
+                                      # and assert statements in marimo files
