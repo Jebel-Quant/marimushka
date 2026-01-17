@@ -44,7 +44,7 @@ class TestKind:
         kind = Kind.from_str("app")
         assert kind == Kind.APP
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid Kind"):
             Kind.from_str("invalid_kind")
 
     def test_html_path(self):
@@ -519,7 +519,7 @@ class TestKindHypothesis:
     @given(invalid_value=st.text().filter(lambda x: x not in [k.value for k in Kind]))
     def test_from_str_rejects_invalid(self, invalid_value: str):
         """Test that Kind.from_str raises ValueError for any invalid string."""
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Invalid Kind") as exc_info:
             Kind.from_str(invalid_value)
         # Use repr() since special characters may be escaped in error message
         assert repr(invalid_value) in str(exc_info.value)
@@ -594,7 +594,7 @@ class TestFolder2NotebooksHypothesis:
     @given(kind=st.sampled_from(list(Kind)))
     def test_empty_folder_returns_empty_list(self, kind: Kind):
         """Test that None or empty string folder returns empty list for any Kind."""
-        from marimushka.notebook import folder2notebooks
+        from marimushka.notebook import folder2notebooks  # noqa: PLC0415
 
         assert folder2notebooks(None, kind=kind) == []
         assert folder2notebooks("", kind=kind) == []
@@ -602,7 +602,7 @@ class TestFolder2NotebooksHypothesis:
     @given(kind=st.sampled_from(list(Kind)))
     def test_notebooks_have_correct_kind(self, kind: Kind):
         """Test that all notebooks from folder2notebooks have the specified kind."""
-        from marimushka.notebook import folder2notebooks
+        from marimushka.notebook import folder2notebooks  # noqa: PLC0415
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
@@ -620,7 +620,7 @@ class TestFolder2NotebooksHypothesis:
     @given(kind=st.sampled_from(list(Kind)))
     def test_notebooks_are_sorted(self, kind: Kind):
         """Test that notebooks from folder2notebooks are sorted alphabetically."""
-        from marimushka.notebook import folder2notebooks
+        from marimushka.notebook import folder2notebooks  # noqa: PLC0415
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
