@@ -26,6 +26,9 @@ test: install ## run all tests
 	  printf "${YELLOW}[WARN] Test folder ${TESTS_FOLDER} not found, skipping tests${RESET}\n"; \
 	fi
 
+# The 'typecheck' target runs static type analysis using mypy.
+# 1. Checks if the source directory exists.
+# 2. Runs mypy on the source folder using the configuration in pyproject.toml.
 typecheck: install ## run mypy type checking
 	@if [ -d ${SOURCE_FOLDER} ]; then \
 	  printf "${BLUE}[INFO] Running mypy type checking...${RESET}\n"; \
@@ -34,12 +37,18 @@ typecheck: install ## run mypy type checking
 	  printf "${YELLOW}[WARN] Source folder ${SOURCE_FOLDER} not found, skipping typecheck${RESET}\n"; \
 	fi
 
+# The 'security' target performs security vulnerability scans.
+# 1. Runs pip-audit to check for known vulnerabilities in dependencies.
+# 2. Runs bandit to find common security issues in the source code.
 security: install ## run security scans (pip-audit and bandit)
 	@printf "${BLUE}[INFO] Running pip-audit for dependency vulnerabilities...${RESET}\n"
 	@${UVX_BIN} pip-audit
 	@printf "${BLUE}[INFO] Running bandit security scan...${RESET}\n"
 	@${UVX_BIN} bandit -r ${SOURCE_FOLDER} -ll -q || true
 
+# The 'mutate' target performs mutation testing using mutmut.
+# 1. Runs mutmut to apply mutations to the source code and check if tests fail.
+# 2. Displays the results of the mutation testing.
 mutate: install ## run mutation testing with mutmut (slow, for CI or thorough testing)
 	@printf "${BLUE}[INFO] Running mutation testing with mutmut...${RESET}\n"
 	@printf "${YELLOW}[WARN] This may take a while...${RESET}\n"
