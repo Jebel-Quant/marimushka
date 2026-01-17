@@ -17,7 +17,7 @@ def mock_logger():
     return MagicMock()
 
 
-@pytest.fixture()
+@pytest.fixture
 def resource_dir():
     """Pytest fixture that provides the path to the test resources directory.
 
@@ -28,7 +28,7 @@ def resource_dir():
     return Path(__file__).parent / "resources"
 
 
-@pytest.fixture()
+@pytest.fixture
 def marimushka_path():
     """Pytest fixture that provides the path to the marimushka executable.
 
