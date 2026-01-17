@@ -139,7 +139,7 @@ def _export_notebooks_parallel(
     return batch_result
 
 
-@app.callback(invoke_without_command=True)  # type: ignore[untyped-decorator]
+@app.callback(invoke_without_command=True)  # type: ignore[misc]
 def callback(ctx: typer.Context) -> None:
     """Run before any command and display help if no command is provided."""
     # If no command is provided, show help
@@ -413,7 +413,7 @@ def main(
     )
 
 
-@app.command(name="export")  # type: ignore[untyped-decorator]
+@app.command(name="export")  # type: ignore[misc]
 def _main_typer(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -446,7 +446,7 @@ def _main_typer(
     )
 
 
-@app.command(name="watch")  # type: ignore[untyped-decorator]
+@app.command(name="watch")  # type: ignore[misc]
 def watch(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -542,7 +542,7 @@ def watch(
         rich_print("\n[bold green]Watch mode stopped.[/bold green]")
 
 
-@app.command(name="version")  # type: ignore[untyped-decorator]
+@app.command(name="version")  # type: ignore[misc]
 def version() -> None:
     """Show the version of Marimushka."""
     rich_print(f"[bold green]Marimushka[/bold green] version: [bold blue]{__version__}[/bold blue]")

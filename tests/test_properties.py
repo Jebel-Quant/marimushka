@@ -75,9 +75,7 @@ class TestExceptionProperties:
         st.text(min_size=1, max_size=50),
     )
     @settings(max_examples=50)
-    def test_notebook_invalid_error_contains_path_and_reason(
-        self, path_str: str, reason: str
-    ) -> None:
+    def test_notebook_invalid_error_contains_path_and_reason(self, path_str: str, reason: str) -> None:
         """Test that NotebookInvalidError contains both path and reason."""
         path = Path(path_str)
         error = NotebookInvalidError(path, reason=reason)
@@ -98,9 +96,7 @@ class TestExceptionProperties:
         st.integers(min_value=-128, max_value=127),
     )
     @settings(max_examples=50)
-    def test_export_subprocess_error_contains_return_code(
-        self, command: list[str], return_code: int
-    ) -> None:
+    def test_export_subprocess_error_contains_return_code(self, command: list[str], return_code: int) -> None:
         """Test that ExportSubprocessError contains the return code."""
         error = ExportSubprocessError(
             notebook_path=Path("test.py"),
