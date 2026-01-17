@@ -4,7 +4,7 @@
 # executing performance benchmarks.
 
 # Declare phony targets (they don't produce files)
-.PHONY: test benchmark typecheck security mutate
+.PHONY: test benchmark typecheck security mutate docs-coverage
 
 # Default directory for tests
 TESTS_FOLDER := tests
@@ -45,6 +45,13 @@ security: install ## run security scans (pip-audit and bandit)
 	@${UVX_BIN} pip-audit
 	@printf "${BLUE}[INFO] Running bandit security scan...${RESET}\n"
 	@${UVX_BIN} bandit -r ${SOURCE_FOLDER} -ll -q || true
+
+# The 'docs-coverage' target checks documentation coverage using interrogate.
+# 1. Runs interrogate on the source folder to check docstring coverage.
+# 2. Uses configuration from pyproject.toml [tool.interrogate] section.
+docs-coverage: install ## check documentation coverage with interrogate
+	@printf "${BLUE}[INFO] Checking documentation coverage...${RESET}\n"
+	@${UVX_BIN} interrogate ${SOURCE_FOLDER} -v
 
 # The 'mutate' target performs mutation testing using mutmut.
 # 1. Runs mutmut to apply mutations to the source code and check if tests fail.

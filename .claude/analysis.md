@@ -17,7 +17,7 @@ Marimushka is a well-crafted Python CLI tool for exporting marimo notebooks to H
 | **Architecture** | 10/10 | Clear separation of concerns, extensible design |
 | **Test Coverage** | 10/10 | 100% coverage enforced, property-based testing, mutation testing |
 | **Documentation** | 9/10 | Comprehensive README, API docs, CLAUDE.md |
-| **CI/CD** | 10/10 | 11 workflows, automated releases, mypy, security scanning |
+| **CI/CD** | 10/10 | 10 workflows, automated releases, mypy, security scanning |
 | **Security** | 10/10 | pip-audit, bandit, CodeQL, subprocess handling reviewed |
 | **Maintainability** | 10/10 | Complexity analysis enabled, minimal dependencies |
 | **Developer Experience** | 10/10 | Comprehensive Makefile targets, pre-commit hooks, clear workflow |
@@ -159,7 +159,7 @@ __init__.py
 
 ### 3.2 Test Statistics
 
-- **Total Tests:** 181 passing
+- **Total Tests:** 214 passing
 - **Test-to-Code Ratio:** 3.7:1 (excellent)
 - **Coverage:** 100% (enforced via `--cov-fail-under=100`)
 
@@ -210,7 +210,7 @@ The watch command now has comprehensive test coverage including:
 
 ### 5.1 Workflow Summary
 
-10 GitHub Actions workflows covering:
+10 GitHub Actions workflows:
 
 | Workflow | Purpose |
 |----------|---------|
@@ -219,11 +219,11 @@ The watch command now has comprehensive test coverage including:
 | `rhiza_codeql.yml` | Security scanning |
 | `rhiza_deptry.yml` | Dependency validation |
 | `rhiza_pre-commit.yml` | Pre-commit checks |
-| `rhiza_validate.yml` | Linting/validation |
+| `rhiza_security.yml` | Security scanning (pip-audit, bandit) |
 | `rhiza_marimo.yml` | Marimo notebook checks |
 | `rhiza_book.yml` | Documentation building |
 | `rhiza_sync.yml` | Rhiza framework sync |
-| `rhiza.yml` | Meta-workflow orchestration |
+| `rhiza_validate.yml` | Validation checks |
 
 ### 5.2 Strengths
 
@@ -358,22 +358,23 @@ Marimushka is a **high-quality, production-ready** Python CLI tool. The codebase
 - **Enhanced Code Quality:** Extended ruff rules (B, C4, SIM, PT, RUF) with complexity analysis
 
 **Key Metrics:**
-- 190 passing tests (including 9 property-based tests)
+- 214 passing tests (including 9 property-based tests)
 - 100% code coverage (enforced)
 - 4 core dependencies
-- 11 CI/CD workflows
+- 10 CI/CD workflows
 - 3.7:1 test-to-code ratio
-- 13 ruff rule sets enabled
+- 13 ruff rule sets enabled + complexity rules
 - Mypy strict mode with 0 type errors
 - Security scanning (pip-audit + bandit) - 0 vulnerabilities
 - Mutation testing infrastructure ready
 - Property-based testing with hypothesis
 
-**New Make targets:**
+**Make targets for quality:**
 - `make typecheck` - Mypy type checking
 - `make security` - pip-audit and bandit scans
 - `make mutate` - Mutation testing with mutmut
 - `make benchmark` - Performance benchmarks
+- `make docs-coverage` - Documentation coverage with interrogate
 
 **Recommendation:** This codebase achieves the highest quality standards and serves as an exemplary Python CLI tool development reference.
 
