@@ -197,10 +197,10 @@ def cell_15(amplitude_slider, frequency_slider, go, mo, np):
     y = amplitude_slider.value * np.sin(frequency_slider.value * x)
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=y, mode="lines", line=dict(color="#2FA4A9", width=2), name="Sine Wave"))
+    fig.add_trace(go.Scatter(x=x, y=y, mode="lines", line={"color": "#2FA4A9", "width": 2}, name="Sine Wave"))
 
     fig.update_layout(
-        title=f"Sine Wave: y = {amplitude_slider.value} × sin({frequency_slider.value}x)",
+        title=f"Sine Wave: y = {amplitude_slider.value} * sin({frequency_slider.value}x)",
         xaxis_title="x",
         yaxis_title="y",
         template="plotly_white",
