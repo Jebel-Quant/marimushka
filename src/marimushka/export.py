@@ -139,8 +139,8 @@ def _export_notebooks_parallel(
     return batch_result
 
 
-@app.callback(invoke_without_command=True)
-def callback(ctx: typer.Context):
+@app.callback(invoke_without_command=True)  # type: ignore[untyped-decorator]
+def callback(ctx: typer.Context) -> None:
     """Run before any command and display help if no command is provided."""
     # If no command is provided, show help
     if ctx.invoked_subcommand is None:
@@ -271,7 +271,7 @@ def _generate_index(
         template = env.get_template(template_name)
 
         # Render the template with notebook and app data
-        rendered_html = template.render(
+        rendered_html: str = template.render(
             notebooks=notebooks,
             apps=apps,
             notebooks_wasm=notebooks_wasm,
@@ -413,7 +413,7 @@ def main(
     )
 
 
-@app.command(name="export")
+@app.command(name="export")  # type: ignore[untyped-decorator]
 def _main_typer(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -446,7 +446,7 @@ def _main_typer(
     )
 
 
-@app.command(name="watch")
+@app.command(name="watch")  # type: ignore[untyped-decorator]
 def watch(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -542,12 +542,12 @@ def watch(
         rich_print("\n[bold green]Watch mode stopped.[/bold green]")
 
 
-@app.command(name="version")
-def version():
+@app.command(name="version")  # type: ignore[untyped-decorator]
+def version() -> None:
     """Show the version of Marimushka."""
     rich_print(f"[bold green]Marimushka[/bold green] version: [bold blue]{__version__}[/bold blue]")
 
 
-def cli():
+def cli() -> None:
     """Run the CLI."""
     app()

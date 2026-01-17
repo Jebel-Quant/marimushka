@@ -13,6 +13,7 @@ from pathlib import Path
 from loguru import logger
 
 from .exceptions import (
+    ExportError,
     ExportExecutableNotFoundError,
     ExportSubprocessError,
     NotebookExportResult,
@@ -108,7 +109,7 @@ class Notebook:
     path: Path
     kind: Kind = Kind.NB
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate the notebook path after initialization.
 
         Raises:
@@ -153,9 +154,9 @@ class Notebook:
                 if exe_path.is_file() and os.access(exe_path, os.X_OK):
                     exe = str(exe_path)
                 else:
-                    error = ExportExecutableNotFoundError(executable, bin_path)
-                    logger.error(str(error))
-                    return NotebookExportResult.failed(self.path, error)
+                    err: ExportError = ExportExecutableNotFoundError(executable, bin_path)
+                    logger.error(str(err))
+                    return NotebookExportResult.failed(self.path, err)
         else:
             exe = executable
 
@@ -171,14 +172,14 @@ class Notebook:
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
         except OSError as e:  # pragma: no cover
-            error = ExportSubprocessError(
+            err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
                 stderr=f"Failed to create output directory: {e}",
             )
-            logger.error(str(error))
-            return NotebookExportResult.failed(self.path, error)
+            logger.error(str(err))
+            return NotebookExportResult.failed(self.path, err)
 
         # Add the notebook path and output file to command
         cmd.extend([str(self.path), "-o", str(output_file)])
@@ -197,32 +198,32 @@ class Notebook:
                 nb_logger.warning(f"stderr:\n{result.stderr.strip()}")
 
             if result.returncode != 0:
-                error = ExportSubprocessError(
+                err = ExportSubprocessError(
                     notebook_path=self.path,
                     command=cmd,
                     return_code=result.returncode,
                     stdout=result.stdout,
                     stderr=result.stderr,
                 )
-                nb_logger.error(str(error))
-                return NotebookExportResult.failed(self.path, error)
+                nb_logger.error(str(err))
+                return NotebookExportResult.failed(self.path, err)
 
             return NotebookExportResult.succeeded(self.path, output_file)
 
         except FileNotFoundError as e:
             # Executable not found in PATH
-            error = ExportExecutableNotFoundError(executable)
-            logger.error(f"{error}: {e}")
-            return NotebookExportResult.failed(self.path, error)
+            err = ExportExecutableNotFoundError(executable)
+            logger.error(f"{err}: {e}")
+            return NotebookExportResult.failed(self.path, err)
         except subprocess.SubprocessError as e:
-            error = ExportSubprocessError(
+            err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
                 stderr=str(e),
             )
-            logger.error(str(error))
-            return NotebookExportResult.failed(self.path, error)
+            logger.error(str(err))
+            return NotebookExportResult.failed(self.path, err)
 
     @property
     def display_name(self) -> str:

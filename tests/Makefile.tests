@@ -2,7 +2,7 @@
 # This file is included by the main Makefile
 
 # Declare phony targets (they don't produce files)
-.PHONY: test benchmark
+.PHONY: test typecheck benchmark
 
 # Test-specific variables
 TESTS_FOLDER := tests
@@ -14,6 +14,14 @@ test: install ## run all tests
 	  ${VENV}/bin/python -m pytest ${TESTS_FOLDER} --ignore=${TESTS_FOLDER}/benchmarks --cov=${SOURCE_FOLDER} --cov-report=term --cov-report=html:_tests/html-coverage --cov-report=json:_tests/coverage.json --cov-fail-under=100 --html=_tests/html-report/report.html; \
 	else \
 	  printf "${YELLOW}[WARN] Test folder ${TESTS_FOLDER} not found, skipping tests${RESET}\n"; \
+	fi
+
+typecheck: install ## run mypy type checking
+	@if [ -d ${SOURCE_FOLDER} ]; then \
+	  printf "${BLUE}[INFO] Running mypy type checking...${RESET}\n"; \
+	  ${UVX_BIN} mypy ${SOURCE_FOLDER} --config-file pyproject.toml; \
+	else \
+	  printf "${YELLOW}[WARN] Source folder ${SOURCE_FOLDER} not found, skipping typecheck${RESET}\n"; \
 	fi
 
 benchmark: install ## run performance benchmarks
