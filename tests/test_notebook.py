@@ -4,10 +4,13 @@ This module contains tests for the Notebook class and Kind enum in the notebook.
 """
 
 import subprocess
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from marimushka.exceptions import (
     ExportExecutableNotFoundError,
@@ -502,3 +505,131 @@ class TestNotebook:
 
             # Assert
             assert html_path == Path("apps") / "charts.html"
+
+
+class TestKindHypothesis:
+    """Property-based tests for the Kind enum using hypothesis."""
+
+    @given(kind=st.sampled_from(list(Kind)))
+    def test_from_str_roundtrip(self, kind: Kind):
+        """Test that Kind.from_str correctly round-trips all valid Kind values."""
+        result = Kind.from_str(kind.value)
+        assert result == kind
+
+    @given(invalid_value=st.text().filter(lambda x: x not in [k.value for k in Kind]))
+    def test_from_str_rejects_invalid(self, invalid_value: str):
+        """Test that Kind.from_str raises ValueError for any invalid string."""
+        with pytest.raises(ValueError) as exc_info:
+            Kind.from_str(invalid_value)
+        # Use repr() since special characters may be escaped in error message
+        assert repr(invalid_value) in str(exc_info.value)
+
+    @given(kind=st.sampled_from(list(Kind)))
+    def test_command_returns_list_starting_with_marimo(self, kind: Kind):
+        """Test that command property always returns a list starting with 'marimo'."""
+        cmd = kind.command
+        assert isinstance(cmd, list)
+        assert len(cmd) >= 3
+        assert cmd[0] == "marimo"
+        assert cmd[1] == "export"
+
+    @given(kind=st.sampled_from(list(Kind)))
+    def test_html_path_returns_path(self, kind: Kind):
+        """Test that html_path property always returns a valid Path."""
+        path = kind.html_path
+        assert isinstance(path, Path)
+        assert not path.is_absolute()
+
+
+class TestNotebookHypothesis:
+    """Property-based tests for the Notebook class using hypothesis."""
+
+    @given(
+        stem=st.text(
+            alphabet=st.characters(whitelist_categories=("L", "N"), whitelist_characters="_-"),
+            min_size=1,
+            max_size=50,
+        ).filter(lambda x: x.strip() and not x.startswith("-"))
+    )
+    def test_display_name_replaces_underscores(self, stem: str):
+        """Test that display_name replaces all underscores with spaces."""
+        notebook_path = Path(f"{stem}.py")
+
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path)
+            display_name = notebook.display_name
+
+            assert "_" not in display_name
+            assert display_name == stem.replace("_", " ")
+
+    @given(
+        stem=st.text(
+            alphabet=st.characters(whitelist_categories=("L", "N"), whitelist_characters="_-"),
+            min_size=1,
+            max_size=50,
+        ).filter(lambda x: x.strip() and not x.startswith("-")),
+        kind=st.sampled_from(list(Kind)),
+    )
+    def test_html_path_structure(self, stem: str, kind: Kind):
+        """Test that html_path correctly combines kind's html_path with notebook stem."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            notebook_path = Path(tmp_dir) / f"{stem}.py"
+            notebook_path.touch()
+
+            notebook = Notebook(notebook_path, kind=kind)
+            html_path = notebook.html_path
+
+            assert html_path.suffix == ".html"
+            assert html_path.stem == stem
+            assert html_path.parent == kind.html_path
+
+
+class TestFolder2NotebooksHypothesis:
+    """Property-based tests for folder2notebooks function using hypothesis."""
+
+    @given(kind=st.sampled_from(list(Kind)))
+    def test_empty_folder_returns_empty_list(self, kind: Kind):
+        """Test that None or empty string folder returns empty list for any Kind."""
+        from marimushka.notebook import folder2notebooks
+
+        assert folder2notebooks(None, kind=kind) == []
+        assert folder2notebooks("", kind=kind) == []
+
+    @given(kind=st.sampled_from(list(Kind)))
+    def test_notebooks_have_correct_kind(self, kind: Kind):
+        """Test that all notebooks from folder2notebooks have the specified kind."""
+        from marimushka.notebook import folder2notebooks
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            # Create some test files
+            (tmp_path / "test1.py").touch()
+            (tmp_path / "test2.py").touch()
+            (tmp_path / "not_a_notebook.txt").touch()
+
+            notebooks = folder2notebooks(tmp_path, kind=kind)
+
+            assert len(notebooks) == 2
+            for nb in notebooks:
+                assert nb.kind == kind
+
+    @given(kind=st.sampled_from(list(Kind)))
+    def test_notebooks_are_sorted(self, kind: Kind):
+        """Test that notebooks from folder2notebooks are sorted alphabetically."""
+        from marimushka.notebook import folder2notebooks
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            # Create files in non-alphabetical order
+            (tmp_path / "zebra.py").touch()
+            (tmp_path / "alpha.py").touch()
+            (tmp_path / "middle.py").touch()
+
+            notebooks = folder2notebooks(tmp_path, kind=kind)
+
+            names = [nb.path.name for nb in notebooks]
+            assert names == sorted(names)

@@ -9,12 +9,15 @@ This module contains tests for the functions in the export.py module:
 - cli
 """
 
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import jinja2
 import pytest
 import typer
+from hypothesis import given
+from hypothesis import strategies as st
 
 from marimushka.exceptions import (
     BatchExportResult,
@@ -936,3 +939,234 @@ class TestWatchCommand:
 
         # Verify template parent directory was included
         assert template_dir in watched_paths
+
+
+class TestValidateTemplateHypothesis:
+    """Property-based tests for _validate_template function."""
+
+    @given(
+        stem=st.text(
+            alphabet=st.characters(whitelist_categories=("L", "N"), whitelist_characters="_-"),
+            min_size=1,
+            max_size=30,
+        ).filter(lambda x: x.strip() and not x.startswith("-"))
+    )
+    def test_valid_j2_extension_does_not_raise(self, stem: str):
+        """Test that files with .j2 extension pass validation."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            template_file = Path(tmp_dir) / f"{stem}.html.j2"
+            template_file.write_text("<html></html>")
+
+            # Should not raise any exception
+            _validate_template(template_file)
+
+    @given(
+        stem=st.text(
+            alphabet=st.characters(whitelist_categories=("L", "N"), whitelist_characters="_-"),
+            min_size=1,
+            max_size=30,
+        ).filter(lambda x: x.strip() and not x.startswith("-"))
+    )
+    def test_valid_jinja2_extension_does_not_raise(self, stem: str):
+        """Test that files with .jinja2 extension pass validation."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            template_file = Path(tmp_dir) / f"{stem}.html.jinja2"
+            template_file.write_text("<html></html>")
+
+            # Should not raise any exception
+            _validate_template(template_file)
+
+    @given(
+        stem=st.text(
+            alphabet=st.characters(whitelist_categories=("L", "N"), whitelist_characters="_-"),
+            min_size=1,
+            max_size=30,
+        ).filter(lambda x: x.strip() and not x.startswith("-"))
+    )
+    def test_nonexistent_file_raises_not_found(self, stem: str):
+        """Test that non-existent files raise TemplateNotFoundError."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            template_file = Path(tmp_dir) / f"{stem}.html.j2"
+            # Don't create the file
+
+            with pytest.raises(TemplateNotFoundError) as exc_info:
+                _validate_template(template_file)
+            assert exc_info.value.template_path == template_file
+
+    @given(
+        stem=st.text(
+            alphabet=st.characters(whitelist_categories=("L", "N"), whitelist_characters="_-"),
+            min_size=1,
+            max_size=30,
+        ).filter(lambda x: x.strip() and not x.startswith("-"))
+    )
+    def test_directory_raises_invalid(self, stem: str):
+        """Test that directories raise TemplateInvalidError."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            template_dir = Path(tmp_dir) / stem
+            template_dir.mkdir()
+
+            with pytest.raises(TemplateInvalidError) as exc_info:
+                _validate_template(template_dir)
+            assert exc_info.value.template_path == template_dir
+            assert "not a file" in exc_info.value.reason
+
+
+class TestExportNotebooksParallelHypothesis:
+    """Property-based tests for _export_notebooks_parallel function."""
+
+    @given(num_notebooks=st.integers(min_value=0, max_value=20))
+    def test_result_count_equals_input_count(self, num_notebooks: int):
+        """Test that the number of results equals the number of input notebooks."""
+        mock_notebooks = []
+        for i in range(num_notebooks):
+            nb = MagicMock()
+            nb.path = Path(f"/nb{i}.py")
+            nb.export.return_value = NotebookExportResult.succeeded(Path(f"/nb{i}.py"), Path(f"/output/nb{i}.html"))
+            mock_notebooks.append(nb)
+
+        result = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
+
+        assert len(result.results) == num_notebooks
+        assert result.succeeded + result.failed == num_notebooks
+
+    @given(
+        num_success=st.integers(min_value=0, max_value=10),
+        num_failure=st.integers(min_value=0, max_value=10),
+    )
+    def test_success_and_failure_counts_accurate(self, num_success: int, num_failure: int):
+        """Test that success and failure counts are accurate."""
+        mock_notebooks = []
+
+        # Create successful notebooks
+        for i in range(num_success):
+            nb = MagicMock()
+            mock_path = MagicMock()
+            mock_path.name = f"success{i}.py"
+            nb.path = mock_path
+            nb.export.return_value = NotebookExportResult.succeeded(
+                Path(f"/success{i}.py"), Path(f"/output/success{i}.html")
+            )
+            mock_notebooks.append(nb)
+
+        # Create failing notebooks
+        for i in range(num_failure):
+            nb = MagicMock()
+            mock_path = MagicMock()
+            mock_path.name = f"failure{i}.py"
+            nb.path = mock_path
+            nb.export.return_value = NotebookExportResult.failed(
+                Path(f"/failure{i}.py"),
+                ExportSubprocessError(Path(f"/failure{i}.py"), ["cmd"], 1),
+            )
+            mock_notebooks.append(nb)
+
+        result = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=2)
+
+        assert result.succeeded == num_success
+        assert result.failed == num_failure
+        # all_succeeded is True when failed == 0 (regardless of succeeded count)
+        assert result.all_succeeded == (num_failure == 0)
+
+    @given(max_workers=st.integers(min_value=1, max_value=16))
+    def test_works_with_various_worker_counts(self, max_workers: int):
+        """Test that export works with various worker counts."""
+        mock_notebooks = []
+        for i in range(5):
+            nb = MagicMock()
+            nb.path = Path(f"/nb{i}.py")
+            nb.export.return_value = NotebookExportResult.succeeded(Path(f"/nb{i}.py"), Path(f"/output/nb{i}.html"))
+            mock_notebooks.append(nb)
+
+        result = _export_notebooks_parallel(mock_notebooks, Path("/output"), True, None, max_workers=max_workers)
+
+        assert result.succeeded == 5
+        assert result.failed == 0
+
+
+class TestBatchExportResultHypothesis:
+    """Property-based tests for BatchExportResult class."""
+
+    @given(
+        success_count=st.integers(min_value=0, max_value=50),
+        failure_count=st.integers(min_value=0, max_value=50),
+    )
+    def test_add_increments_counts_correctly(self, success_count: int, failure_count: int):
+        """Test that add() correctly increments success and failure counts."""
+        batch_result = BatchExportResult()
+
+        # Add successful results
+        for i in range(success_count):
+            batch_result.add(NotebookExportResult.succeeded(Path(f"/s{i}.py"), Path(f"/out/s{i}.html")))
+
+        # Add failed results
+        for i in range(failure_count):
+            batch_result.add(
+                NotebookExportResult.failed(
+                    Path(f"/f{i}.py"),
+                    ExportSubprocessError(Path(f"/f{i}.py"), ["cmd"], 1),
+                )
+            )
+
+        assert batch_result.succeeded == success_count
+        assert batch_result.failed == failure_count
+        assert len(batch_result.results) == success_count + failure_count
+
+    @given(success_count=st.integers(min_value=1, max_value=50))
+    def test_all_succeeded_true_when_no_failures(self, success_count: int):
+        """Test that all_succeeded is True when there are no failures."""
+        batch_result = BatchExportResult()
+
+        for i in range(success_count):
+            batch_result.add(NotebookExportResult.succeeded(Path(f"/s{i}.py"), Path(f"/out/s{i}.html")))
+
+        assert batch_result.all_succeeded is True
+
+    @given(
+        success_count=st.integers(min_value=0, max_value=50),
+        failure_count=st.integers(min_value=1, max_value=50),
+    )
+    def test_all_succeeded_false_when_any_failures(self, success_count: int, failure_count: int):
+        """Test that all_succeeded is False when there are any failures."""
+        batch_result = BatchExportResult()
+
+        for i in range(success_count):
+            batch_result.add(NotebookExportResult.succeeded(Path(f"/s{i}.py"), Path(f"/out/s{i}.html")))
+
+        for i in range(failure_count):
+            batch_result.add(
+                NotebookExportResult.failed(
+                    Path(f"/f{i}.py"),
+                    ExportSubprocessError(Path(f"/f{i}.py"), ["cmd"], 1),
+                )
+            )
+
+        assert batch_result.all_succeeded is False
+
+    def test_all_succeeded_true_when_empty(self):
+        """Test that all_succeeded is True when result is empty (no failures)."""
+        batch_result = BatchExportResult()
+        # all_succeeded is True when failed == 0, even for empty results
+        assert batch_result.all_succeeded is True
+
+    @given(failure_count=st.integers(min_value=1, max_value=50))
+    def test_failures_property_returns_only_failures(self, failure_count: int):
+        """Test that failures property returns only failed results."""
+        batch_result = BatchExportResult()
+
+        # Add some successes
+        for i in range(3):
+            batch_result.add(NotebookExportResult.succeeded(Path(f"/s{i}.py"), Path(f"/out/s{i}.html")))
+
+        # Add failures
+        for i in range(failure_count):
+            batch_result.add(
+                NotebookExportResult.failed(
+                    Path(f"/f{i}.py"),
+                    ExportSubprocessError(Path(f"/f{i}.py"), ["cmd"], 1),
+                )
+            )
+
+        failures = batch_result.failures
+        assert len(failures) == failure_count
+        assert all(not f.success for f in failures)

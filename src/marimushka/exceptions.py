@@ -34,8 +34,6 @@ class MarimushkaError(Exception):
 class TemplateError(MarimushkaError):
     """Base exception for template-related errors."""
 
-    pass
-
 
 class TemplateNotFoundError(TemplateError):
     """Raised when the specified template file does not exist.
@@ -102,8 +100,6 @@ class TemplateRenderError(TemplateError):
 class NotebookError(MarimushkaError):
     """Base exception for notebook-related errors."""
 
-    pass
-
 
 class NotebookNotFoundError(NotebookError):
     """Raised when the specified notebook file does not exist.
@@ -148,8 +144,6 @@ class NotebookInvalidError(NotebookError):
 
 class ExportError(MarimushkaError):
     """Base exception for export-related errors."""
-
-    pass
 
 
 class ExportExecutableNotFoundError(ExportError):
@@ -221,8 +215,6 @@ class ExportSubprocessError(ExportError):
 
 class OutputError(MarimushkaError):
     """Base exception for output-related errors."""
-
-    pass
 
 
 class IndexWriteError(OutputError):
