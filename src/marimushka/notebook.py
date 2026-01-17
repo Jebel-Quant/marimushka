@@ -1,6 +1,42 @@
 """Notebook module for handling marimo notebooks.
 
-This module provides the Notebook class for representing and exporting marimo notebooks.
+This module provides the core abstractions for representing and exporting marimo
+notebooks to various HTML and WebAssembly formats. It defines the Notebook class
+which encapsulates a marimo notebook file and handles the export process via
+subprocess calls to the marimo CLI.
+
+Key Components:
+    Kind: Enumeration of notebook export types (static HTML, interactive WASM, app mode).
+    Notebook: Dataclass representing a single marimo notebook with export capabilities.
+    folder2notebooks: Utility function to discover notebooks in a directory.
+
+Export Modes:
+    The module supports three export modes through the Kind enum:
+
+    - NB (notebook): Exports to static HTML using `marimo export html --sandbox`.
+      Best for documentation and read-only sharing.
+
+    - NB_WASM (notebook_wasm): Exports to interactive WebAssembly using
+      `marimo export html-wasm --mode edit --sandbox`. Users can edit and run
+      code in the browser.
+
+    - APP (app): Exports to WebAssembly in run mode using
+      `marimo export html-wasm --mode run --no-show-code --sandbox`. Presents
+      a clean application interface with code hidden.
+
+Example::
+
+    from marimushka.notebook import Notebook, Kind, folder2notebooks
+    from pathlib import Path
+
+    # Create a notebook and export it
+    nb = Notebook(Path("my_notebook.py"), kind=Kind.APP)
+    result = nb.export(Path("_site/apps"))
+    if result.success:
+        print(f"Exported to {result.output_path}")
+
+    # Discover all notebooks in a directory
+    notebooks = folder2notebooks(Path("notebooks"), kind=Kind.NB)
 """
 
 import dataclasses
@@ -13,6 +49,7 @@ from pathlib import Path
 from loguru import logger
 
 from .exceptions import (
+    ExportError,
     ExportExecutableNotFoundError,
     ExportSubprocessError,
     NotebookExportResult,
@@ -22,7 +59,26 @@ from .exceptions import (
 
 
 class Kind(Enum):
-    """Kind of notebook."""
+    """Enumeration of notebook export types.
+
+    This enum defines the three ways a marimo notebook can be exported,
+    each with different capabilities and use cases. The choice of Kind
+    affects both the marimo export command used and the output directory.
+
+    Attributes:
+        NB: Static HTML export. Creates a read-only HTML representation
+            of the notebook. Output goes to the 'notebooks/' subdirectory.
+            Uses command: `marimo export html --sandbox`
+        NB_WASM: Interactive WebAssembly export in edit mode. Creates a
+            fully interactive notebook that runs in the browser with code
+            editing capabilities. Output goes to the 'notebooks_wasm/'
+            subdirectory. Uses command: `marimo export html-wasm --mode edit --sandbox`
+        APP: WebAssembly export in run/app mode. Creates an application
+            interface with code hidden from users. Ideal for dashboards
+            and user-facing tools. Output goes to the 'apps/' subdirectory.
+            Uses command: `marimo export html-wasm --mode run --no-show-code --sandbox`
+
+    """
 
     NB = "notebook"
     NB_WASM = "notebook_wasm"
@@ -108,7 +164,7 @@ class Notebook:
     path: Path
     kind: Kind = Kind.NB
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate the notebook path after initialization.
 
         Raises:
@@ -153,9 +209,9 @@ class Notebook:
                 if exe_path.is_file() and os.access(exe_path, os.X_OK):
                     exe = str(exe_path)
                 else:
-                    error = ExportExecutableNotFoundError(executable, bin_path)
-                    logger.error(str(error))
-                    return NotebookExportResult.failed(self.path, error)
+                    err: ExportError = ExportExecutableNotFoundError(executable, bin_path)
+                    logger.error(str(err))
+                    return NotebookExportResult.failed(self.path, err)
         else:
             exe = executable
 
@@ -171,14 +227,14 @@ class Notebook:
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
         except OSError as e:  # pragma: no cover
-            error = ExportSubprocessError(
+            err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
                 stderr=f"Failed to create output directory: {e}",
             )
-            logger.error(str(error))
-            return NotebookExportResult.failed(self.path, error)
+            logger.error(str(err))
+            return NotebookExportResult.failed(self.path, err)
 
         # Add the notebook path and output file to command
         cmd.extend([str(self.path), "-o", str(output_file)])
@@ -197,32 +253,32 @@ class Notebook:
                 nb_logger.warning(f"stderr:\n{result.stderr.strip()}")
 
             if result.returncode != 0:
-                error = ExportSubprocessError(
+                err = ExportSubprocessError(
                     notebook_path=self.path,
                     command=cmd,
                     return_code=result.returncode,
                     stdout=result.stdout,
                     stderr=result.stderr,
                 )
-                nb_logger.error(str(error))
-                return NotebookExportResult.failed(self.path, error)
+                nb_logger.error(str(err))
+                return NotebookExportResult.failed(self.path, err)
 
             return NotebookExportResult.succeeded(self.path, output_file)
 
         except FileNotFoundError as e:
             # Executable not found in PATH
-            error = ExportExecutableNotFoundError(executable)
-            logger.error(f"{error}: {e}")
-            return NotebookExportResult.failed(self.path, error)
+            err = ExportExecutableNotFoundError(executable)
+            logger.error(f"{err}: {e}")
+            return NotebookExportResult.failed(self.path, err)
         except subprocess.SubprocessError as e:
-            error = ExportSubprocessError(
+            err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
                 stderr=str(e),
             )
-            logger.error(str(error))
-            return NotebookExportResult.failed(self.path, error)
+            logger.error(str(err))
+            return NotebookExportResult.failed(self.path, err)
 
     @property
     def display_name(self) -> str:
@@ -236,15 +292,51 @@ class Notebook:
 
 
 def folder2notebooks(folder: Path | str | None, kind: Kind = Kind.NB) -> list[Notebook]:
-    """Find all marimo notebooks in a directory."""
+    """Discover and create Notebook instances for all Python files in a directory.
+
+    This function scans a directory for Python files (*.py) and creates Notebook
+    instances for each one. It assumes all Python files in the directory are
+    valid marimo notebooks. The resulting list is sorted alphabetically by
+    filename to ensure consistent ordering across runs.
+
+    Args:
+        folder: Path to the directory to scan for notebooks. Can be a Path
+            object, a string path, or None. If None or empty string, returns
+            an empty list.
+        kind: The export type for all discovered notebooks. Defaults to Kind.NB
+            (static HTML export). All notebooks in the folder will be assigned
+            this kind.
+
+    Returns:
+        A list of Notebook instances, one for each Python file found in the
+        directory, sorted alphabetically by filename. Returns an empty list
+        if the folder is None, empty, or contains no Python files.
+
+    Raises:
+        NotebookNotFoundError: If a discovered file does not exist (unlikely
+            in normal usage but possible in race conditions).
+        NotebookInvalidError: If a discovered path is not a valid file.
+
+    Example::
+
+        from pathlib import Path
+        from marimushka.notebook import folder2notebooks, Kind
+
+        # Get all notebooks from a directory as static HTML exports
+        notebooks = folder2notebooks(Path("notebooks"), Kind.NB)
+
+        # Get all notebooks as interactive apps
+        apps = folder2notebooks("apps", Kind.APP)
+
+        # Handle empty or missing directories gracefully
+        empty = folder2notebooks(None)  # Returns []
+        empty = folder2notebooks("")    # Returns []
+
+    """
     if folder is None or folder == "":
         return []
 
-    # which files are included here?
     notebooks = list(Path(folder).glob("*.py"))
-
-    # Sort notebooks alphabetically by filename to ensure consistent ordering
     notebooks.sort()
 
-    # uvx marimo export html-wasm / html --sandbox (--mode edit/run) (
     return [Notebook(path=nb, kind=kind) for nb in notebooks]

@@ -1,11 +1,46 @@
-"""Build the script for marimo notebooks.
+"""Export module for building and deploying marimo notebooks.
 
-This script exports marimo notebooks to HTML/WebAssembly format and generates
-an index.html file that lists all the notebooks. It handles both regular notebooks
-(from the notebooks/ directory) and apps (from the apps/ directory).
+This module provides the CLI interface and core export functionality for
+converting marimo notebooks into deployable HTML/WebAssembly format. It
+orchestrates the export process, handles template rendering, and generates
+an index page that serves as a navigation hub for all exported notebooks.
 
-The script can be run from the command line with optional arguments:
-    uvx marimushka [--output-dir OUTPUT_DIR]
+Architecture:
+    The export flow follows this path:
+    cli() → app() (Typer) → main() → _main_impl() → _generate_index()
+
+    - cli(): Entry point that invokes the Typer application
+    - app: Typer application with subcommands (export, watch, version)
+    - main(): Public Python API with sensible defaults
+    - _main_impl(): Implementation with logging and orchestration
+    - _generate_index(): Core export logic with template rendering
+
+CLI Commands:
+    - export: Export notebooks to HTML/WASM and generate index page
+    - watch: Monitor directories and auto-export on file changes
+    - version: Display the current marimushka version
+
+Parallel Export:
+    The module supports parallel notebook export using ThreadPoolExecutor.
+    By default, it uses 4 worker threads, configurable via --max-workers.
+    Progress is displayed using Rich progress bars.
+
+Template System:
+    Index pages are generated using Jinja2 templates. Templates receive
+    three lists (notebooks, apps, notebooks_wasm) where each item has:
+    - display_name: Human-readable name (underscores converted to spaces)
+    - html_path: Relative path to the exported HTML file
+    - path: Original .py file path
+    - kind: The notebook type (Kind enum)
+
+Example::
+
+    # CLI usage
+    $ marimushka export --notebooks notebooks --apps apps --output _site
+
+    # Python API
+    from marimushka.export import main
+    main(notebooks="notebooks", apps="apps", output="_site")
 
 The exported files will be placed in the specified output directory (default: _site).
 """
@@ -139,13 +174,25 @@ def _export_notebooks_parallel(
     return batch_result
 
 
-@app.callback(invoke_without_command=True)
-def callback(ctx: typer.Context):
-    """Run before any command and display help if no command is provided."""
-    # If no command is provided, show help
+@app.callback(invoke_without_command=True)  # type: ignore[misc]
+def callback(ctx: typer.Context) -> None:
+    """Handle the CLI invocation without a subcommand.
+
+    This callback runs before any subcommand and displays help text if the
+    user invokes marimushka without specifying a subcommand (e.g., just
+    `marimushka` instead of `marimushka export`).
+
+    Args:
+        ctx: Typer context containing invocation information, including
+            which subcommand (if any) was specified.
+
+    Raises:
+        typer.Exit: Always raised when no subcommand is provided, with
+            exit code 0 to indicate this is expected behavior.
+
+    """
     if ctx.invoked_subcommand is None:
         print(ctx.get_help())
-        # Exit with code 0 to indicate success
         raise typer.Exit()
 
 
@@ -271,7 +318,7 @@ def _generate_index(
         template = env.get_template(template_name)
 
         # Render the template with notebook and app data
-        rendered_html = template.render(
+        rendered_html: str = template.render(
             notebooks=notebooks,
             apps=apps,
             notebooks_wasm=notebooks_wasm,
@@ -301,16 +348,47 @@ def _main_impl(
     parallel: bool = True,
     max_workers: int = 4,
 ) -> str:
-    """Implement the main function.
+    """Execute the main export workflow with logging and validation.
 
-    This function contains the actual implementation of the main functionality.
-    It is called by the main() function, which handles the Typer options.
+    This is the internal implementation function that contains the actual
+    export logic. It validates inputs, discovers notebooks in each directory,
+    exports them according to their type, and generates the index page.
+    All operations are logged for debugging and monitoring.
+
+    This function is called by main() (Python API) and _main_typer() (CLI).
+    It separates the implementation from the interface, allowing both the
+    Python API and CLI to share the same core logic.
+
+    Args:
+        output: Directory where exported files will be saved. Created if
+            it doesn't exist. Subdirectories (notebooks/, apps/, notebooks_wasm/)
+            are created automatically based on content.
+        template: Path to the Jinja2 template file for the index page.
+            Must have .j2 or .jinja2 extension (warning logged otherwise).
+        notebooks: Directory containing marimo notebooks for static HTML export.
+            All .py files in this directory are treated as notebooks.
+        apps: Directory containing marimo notebooks for app-mode export.
+            All .py files are exported with code hidden in run mode.
+        notebooks_wasm: Directory containing marimo notebooks for interactive
+            WebAssembly export with edit mode enabled.
+        sandbox: Whether to run notebooks in sandbox mode during export.
+            Defaults to True for security. Set False only for trusted code.
+        bin_path: Custom directory containing the uvx executable. If None,
+            uvx is located via the system PATH.
+        parallel: Whether to export notebooks in parallel using threads.
+            Defaults to True for performance.
+        max_workers: Maximum number of parallel worker threads. Only used
+            when parallel=True. Defaults to 4.
+
+    Returns:
+        The rendered HTML content of the index page as a string. Returns
+        an empty string if no notebooks or apps were found.
 
     Raises:
         TemplateNotFoundError: If the template file does not exist.
-        TemplateInvalidError: If the template path is not a file.
-        TemplateRenderError: If the template fails to render.
-        IndexWriteError: If the index file cannot be written.
+        TemplateInvalidError: If the template path is not a valid file.
+        TemplateRenderError: If the template fails to render due to Jinja2 errors.
+        IndexWriteError: If the index.html file cannot be written to disk.
 
     """
     logger.info("Starting marimushka build process")
@@ -413,7 +491,7 @@ def main(
     )
 
 
-@app.command(name="export")
+@app.command(name="export")  # type: ignore[misc]
 def _main_typer(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -432,7 +510,30 @@ def _main_typer(
     parallel: bool = typer.Option(True, "--parallel/--no-parallel", help="Whether to export notebooks in parallel"),
     max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers"),
 ) -> None:
-    """Export marimo notebooks and build an HTML index page linking to them."""
+    """Export marimo notebooks and build an HTML index page linking to them.
+
+    This is the main CLI command for exporting notebooks. It scans the specified
+    directories for marimo notebook files (.py), exports each one to HTML or
+    WebAssembly format based on its category, and generates an index.html page
+    that provides navigation links to all exported notebooks.
+
+    The export process uses marimo's built-in export functionality via uvx,
+    running each notebook in sandbox mode by default for security.
+
+    Example usage:
+        # Basic export with defaults
+        $ marimushka export
+
+        # Custom directories
+        $ marimushka export -n my_notebooks -a my_apps -o dist
+
+        # Disable parallel processing
+        $ marimushka export --no-parallel
+
+        # Use custom template
+        $ marimushka export -t my_template.html.j2
+
+    """
     main(
         output=output,
         template=template,
@@ -446,7 +547,7 @@ def _main_typer(
     )
 
 
-@app.command(name="watch")
+@app.command(name="watch")  # type: ignore[misc]
 def watch(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -542,12 +643,40 @@ def watch(
         rich_print("\n[bold green]Watch mode stopped.[/bold green]")
 
 
-@app.command(name="version")
-def version():
-    """Show the version of Marimushka."""
+@app.command(name="version")  # type: ignore[misc]
+def version() -> None:
+    """Display the current version of Marimushka.
+
+    Prints the package version with colored formatting using Rich. The version
+    is read from the package metadata at runtime, ensuring it always reflects
+    the installed version.
+
+    Example:
+        $ marimushka version
+        Marimushka version: 0.1.0
+
+    """
     rich_print(f"[bold green]Marimushka[/bold green] version: [bold blue]{__version__}[/bold blue]")
 
 
-def cli():
-    """Run the CLI."""
+def cli() -> None:
+    """Entry point for the marimushka command-line interface.
+
+    This function is registered as the console script entry point in
+    pyproject.toml. It invokes the Typer application which handles
+    argument parsing and command dispatch.
+
+    The CLI supports the following subcommands:
+        - export: Export notebooks and generate index page
+        - watch: Monitor for changes and auto-export
+        - version: Display the installed version
+
+    Running without a subcommand displays help text.
+
+    Example:
+        $ marimushka          # Shows help
+        $ marimushka export   # Run export command
+        $ marimushka --help   # Shows help
+
+    """
     app()
