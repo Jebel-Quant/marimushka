@@ -8,11 +8,11 @@ def test_complete(resource_dir, tmp_path):
     """Test complete marimushka build process."""
     # Call main function and capture the returned HTML
     html_output = main(
-        notebooks=resource_dir / "notebooks",
-        apps=resource_dir / "apps",
+        notebooks=resource_dir / "marimo" / "notebooks",
+        apps=resource_dir / "marimo" /"apps",
         template=resource_dir / "templates" / "tailwind.html.j2",
         output=tmp_path / "output",
-        notebooks_wasm=resource_dir / "notebooks_wasm",
+        notebooks_wasm=resource_dir / "marimo" / "notebooks_wasm",
     )
 
     # Write the HTML output to a file in the resources directory for later testing
@@ -39,8 +39,8 @@ def test_no_apps(resource_dir, tmp_path):
     """Test complete marimushka build process."""
     # Call main function and capture the returned HTML
     html_output = main(
-        notebooks=resource_dir / "notebooks",
-        notebooks_wasm=resource_dir / "notebooks_wasm",
+        notebooks=resource_dir / "marimo" / "notebooks",
+        notebooks_wasm=resource_dir / "marimo" / "notebooks_wasm",
         template=resource_dir / "templates" / "tailwind.html.j2",
         output=tmp_path / "output",
     )
