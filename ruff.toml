@@ -110,7 +110,15 @@ line-ending = "auto"
     "RUF002",   # Allow ambiguous unicode
     "RUF012",   # Allow mutable class attributes
 ]
-"book/marimo/*.py" = [
+"**/notebooks*/*.py" = [
+    "N803",    # Allow non-lowercase variable names
+    "S101",    # Allow assert statements
+    "PLC0415", # Allow imports not at top-level
+    "B018",    # Allow useless expressions
+    "RUF001",  # Allow ambiguous unicode
+    "RUF002",  # Allow ambiguous unicode
+]
+"**/apps/*.py" = [
     "N803",    # Allow non-lowercase variable names
     "S101",    # Allow assert statements
     "PLC0415", # Allow imports not at top-level
