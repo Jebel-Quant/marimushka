@@ -426,12 +426,14 @@ import pytest
 from pathlib import Path
 from marimushka.notebook import Notebook, Kind
 
+
 def test_notebook_display_name():
-    nb = Notebook(path=Path("tests/resources/notebooks/my_notebook.py"))
+    nb = Notebook(path=Path("tests/resources/marimo/notebooks/my_notebook.py"))
     assert nb.display_name == "my notebook"
 
+
 def test_notebook_html_path():
-    nb = Notebook(path=Path("tests/resources/notebooks/demo.py"), kind=Kind.APP)
+    nb = Notebook(path=Path("tests/resources/marimo/notebooks/demo.py"), kind=Kind.APP)
     assert nb.html_path == Path("apps/demo.html")
 ```
 

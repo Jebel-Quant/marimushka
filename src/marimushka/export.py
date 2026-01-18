@@ -63,7 +63,7 @@ import jinja2
 import typer
 from loguru import logger
 from rich import print as rich_print
-from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TaskProgressColumn, TextColumn
 
 from . import __version__
 from .exceptions import (
@@ -138,7 +138,7 @@ def _export_notebooks_parallel(
     bin_path: Path | None,
     max_workers: int = 4,
     progress: Progress | None = None,
-    task_id: int | None = None,
+    task_id: TaskID | None = None,
 ) -> BatchExportResult:
     """Export notebooks in parallel using a thread pool.
 
@@ -177,7 +177,7 @@ def _export_notebooks_parallel(
     return batch_result
 
 
-@app.callback(invoke_without_command=True)  # type: ignore[misc]
+@app.callback(invoke_without_command=True)
 def callback(ctx: typer.Context) -> None:
     """Handle the CLI invocation without a subcommand.
 
@@ -494,7 +494,7 @@ def main(
     )
 
 
-@app.command(name="export")  # type: ignore[misc]
+@app.command(name="export")
 def _main_typer(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -550,7 +550,7 @@ def _main_typer(
     )
 
 
-@app.command(name="watch")  # type: ignore[misc]
+@app.command(name="watch")
 def watch(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -646,7 +646,7 @@ def watch(
         rich_print("\n[bold green]Watch mode stopped.[/bold green]")
 
 
-@app.command(name="version")  # type: ignore[misc]
+@app.command(name="version")
 def version() -> None:
     """Display the current version of Marimushka.
 
