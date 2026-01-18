@@ -76,6 +76,9 @@ from .exceptions import (
 )
 from .notebook import Kind, Notebook, folder2notebooks
 
+# Maximum number of changed files to display in watch mode
+_MAX_CHANGED_FILES_TO_DISPLAY = 5
+
 # Configure logger
 logger.configure(extra={"subprocess": ""})
 logger.remove()
@@ -621,10 +624,10 @@ def watch(
         for changes in watchfiles_watch(*watch_paths):  # pragma: no cover
             changed_files = [str(change[1]) for change in changes]
             rich_print("\n[bold yellow]Detected changes:[/bold yellow]")
-            for f in changed_files[:5]:  # Show first 5 changed files
+            for f in changed_files[:_MAX_CHANGED_FILES_TO_DISPLAY]:
                 rich_print(f"  [dim]{f}[/dim]")
-            if len(changed_files) > 5:
-                rich_print(f"  [dim]... and {len(changed_files) - 5} more[/dim]")
+            if len(changed_files) > _MAX_CHANGED_FILES_TO_DISPLAY:
+                rich_print(f"  [dim]... and {len(changed_files) - _MAX_CHANGED_FILES_TO_DISPLAY} more[/dim]")
 
             rich_print("[bold blue]Re-exporting...[/bold blue]")
             main(

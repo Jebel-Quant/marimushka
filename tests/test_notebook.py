@@ -44,7 +44,7 @@ class TestKind:
         kind = Kind.from_str("app")
         assert kind == Kind.APP
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid Kind"):
             Kind.from_str("invalid_kind")
 
     def test_html_path(self):
@@ -519,7 +519,7 @@ class TestKindHypothesis:
     @given(invalid_value=st.text().filter(lambda x: x not in [k.value for k in Kind]))
     def test_from_str_rejects_invalid(self, invalid_value: str):
         """Test that Kind.from_str raises ValueError for any invalid string."""
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Invalid Kind") as exc_info:
             Kind.from_str(invalid_value)
         # Use repr() since special characters may be escaped in error message
         assert repr(invalid_value) in str(exc_info.value)

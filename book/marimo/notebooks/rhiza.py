@@ -28,17 +28,15 @@ import marimo
 __generated_with = "0.18.4"
 app = marimo.App(width="medium")
 
-
-@app.cell
-def cell_01():
-    """Import marimo as `mo` and return it for use in subsequent cells."""
+with app.setup:
     import marimo as mo
-
-    return (mo,)
+    import numpy as np
+    import pandas as pd
+    import plotly.graph_objects as go
 
 
 @app.cell
-def cell_02(mo):
+def cell_02():
     """Render the showcase introduction Markdown content."""
     mo.md(
         r"""
@@ -60,18 +58,16 @@ def cell_02(mo):
         - 📦 **Version control friendly** - Easy to diff and merge
         """
     )
-    return
 
 
 @app.cell
-def cell_03(mo):
+def cell_03():
     """Render a horizontal rule to separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_04(mo):
+def cell_04():
     """Introduce the Interactive UI Elements section."""
     mo.md(
         r"""
@@ -80,11 +76,10 @@ def cell_04(mo):
         Marimo provides rich UI components that automatically trigger reactive updates.
         """
     )
-    return
 
 
 @app.cell
-def cell_05(mo):
+def cell_05():
     """Create and display a numeric slider UI component."""
     # Slider for numeric input
     slider = mo.ui.slider(start=0, stop=100, value=50, label="Adjust the value:", show_value=True)
@@ -93,7 +88,7 @@ def cell_05(mo):
 
 
 @app.cell
-def cell_06(mo, slider):
+def cell_06(slider):
     """Display the current slider value reactively."""
     mo.md(
         f"""
@@ -102,11 +97,10 @@ def cell_06(mo, slider):
         This text updates automatically when you move the slider! ✨
         """
     )
-    return
 
 
 @app.cell
-def cell_07(mo):
+def cell_07():
     """Create and display a dropdown for language selection."""
     # Dropdown for selection
     dropdown = mo.ui.dropdown(
@@ -119,7 +113,7 @@ def cell_07(mo):
 
 
 @app.cell
-def cell_08(dropdown, mo):
+def cell_08(dropdown):
     """Display the currently selected language from the dropdown."""
     mo.md(
         f"""
@@ -128,11 +122,10 @@ def cell_08(dropdown, mo):
         Great choice! {dropdown.value} is an excellent programming language.
         """
     )
-    return
 
 
 @app.cell
-def cell_09(mo):
+def cell_09():
     """Create and display a text input field for the user's name."""
     # Text input
     text_input = mo.ui.text(value="Marimo", label="Enter your name:", placeholder="Type something...")
@@ -141,21 +134,19 @@ def cell_09(mo):
 
 
 @app.cell
-def cell_10(mo, text_input):
+def cell_10(text_input):
     """Display a personalized greeting using the current text input value."""
     mo.md(f"""Hello, **{text_input.value}**! 👋""")
-    return
 
 
 @app.cell
-def cell_11(mo):
+def cell_11():
     """Render a horizontal rule to visually separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_12(mo):
+def cell_12():
     """Introduce the Data Visualisation section."""
     mo.md(
         r"""
@@ -165,20 +156,10 @@ def cell_12(mo):
         Altair, and Matplotlib. Let's create interactive plots!
         """
     )
-    return
 
 
 @app.cell
-def cell_13():
-    """Import and return NumPy and Plotly modules for plotting in later cells."""
-    import numpy as np
-    import plotly.graph_objects as go
-
-    return go, np
-
-
-@app.cell
-def cell_14(mo):
+def cell_14():
     """Create sliders for wave frequency and amplitude controls for the plot."""
     # Interactive controls for the plot
     frequency_slider = mo.ui.slider(start=1, stop=10, value=2, label="Wave frequency:", show_value=True)
@@ -190,7 +171,7 @@ def cell_14(mo):
 
 
 @app.cell
-def cell_15(amplitude_slider, frequency_slider, go, mo, np):
+def cell_15(amplitude_slider, frequency_slider):
     """Build a reactive Plotly sine wave based on the slider values."""
     # Generate reactive plot based on slider values
     x = np.linspace(0, 4 * np.pi, 1000)
@@ -200,7 +181,7 @@ def cell_15(amplitude_slider, frequency_slider, go, mo, np):
     fig.add_trace(go.Scatter(x=x, y=y, mode="lines", line={"color": "#2FA4A9", "width": 2}, name="Sine Wave"))
 
     fig.update_layout(
-        title=f"Sine Wave: y = {amplitude_slider.value} * sin({frequency_slider.value}x)",
+        title=f"Sine Wave: y = {amplitude_slider.value} × sin({frequency_slider.value}x)",
         xaxis_title="x",
         yaxis_title="y",
         template="plotly_white",
@@ -231,14 +212,13 @@ def cell_15(amplitude_slider, frequency_slider, go, mo, np):
 
 
 @app.cell
-def cell_16(mo):
+def cell_16():
     """Render a horizontal rule to visually separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_17(mo):
+def cell_17():
     """Introduce the DataFrames section."""
     mo.md(
         r"""
@@ -247,14 +227,11 @@ def cell_17(mo):
         Marimo provides excellent support for working with Pandas DataFrames.
         """
     )
-    return
 
 
 @app.cell
 def cell_18():
     """Create a sample Pandas DataFrame for use in subsequent cells."""
-    import pandas as pd
-
     # Create sample data
     data = pd.DataFrame(
         {
@@ -264,11 +241,11 @@ def cell_18():
             "Rating": [4.5, 4.2, 4.8, 4.6, 4.3],
         }
     )
-    return data, pd
+    return data
 
 
 @app.cell
-def cell_19(data, mo):
+def cell_19():
     """Render introductory text for the sample sales dataset."""
     mo.md(
         r"""
@@ -277,19 +254,17 @@ def cell_19(data, mo):
         Here's our dataset displayed as an interactive table:
         """
     )
-    return
 
 
 @app.cell
-def cell_20(data, mo):
+def cell_20(data):
     """Display the sample dataset as an interactive table."""
     # Display as interactive table
     mo.ui.table(data)
-    return
 
 
 @app.cell
-def cell_21(data, go, mo):
+def cell_21(data):
     """Render a Plotly bar chart showing sales by product."""
     # Create a bar chart with Plotly
     colours = ["#2FA4A9", "#3FB5BA", "#4FC6CB", "#5FD7DC", "#6FE8ED"]
@@ -319,14 +294,13 @@ def cell_21(data, go, mo):
 
 
 @app.cell
-def cell_22(mo):
+def cell_22():
     """Render a horizontal rule to visually separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_23(mo):
+def cell_23():
     """Introduce the layout components section."""
     mo.md(
         r"""
@@ -335,11 +309,10 @@ def cell_23(mo):
         Marimo provides powerful layout primitives to organise your content.
         """
     )
-    return
 
 
 @app.cell
-def cell_24(mo):
+def cell_24():
     """Demonstrate a two-column layout with left and right content."""
     # Using columns for side-by-side layout
     left_content = mo.md(
@@ -371,7 +344,7 @@ def cell_24(mo):
 
 
 @app.cell
-def cell_25(mo):
+def cell_25():
     """Demonstrate tabs with Introduction, Details, and Summary content."""
     # Using tabs for organised content
     tab1 = mo.md(
@@ -419,14 +392,13 @@ def cell_25(mo):
 
 
 @app.cell
-def cell_26(mo):
+def cell_26():
     """Render a horizontal rule to visually separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_27(mo):
+def cell_27():
     """Introduce the forms and user input section."""
     mo.md(
         r"""
@@ -435,11 +407,10 @@ def cell_27(mo):
         Marimo forms allow you to batch multiple inputs and submit them together.
         """
     )
-    return
 
 
 @app.cell
-def cell_28(mo):
+def cell_28():
     """Build and display a multi-input form for collecting user information."""
     # Create a form with multiple inputs
     form = mo.ui.dictionary(
@@ -458,7 +429,7 @@ def cell_28(mo):
 
 
 @app.cell
-def cell_29(form, mo):
+def cell_29(form):
     """Display current form values reactively as the user edits the form."""
     # Display form values - updates reactively as you type/change values
     if form.value and any(form.value.values()):
@@ -481,18 +452,16 @@ def cell_29(form, mo):
         )
     else:
         mo.md("*The form values will appear here as you interact with them.*")
-    return
 
 
 @app.cell
-def cell_30(mo):
+def cell_30():
     """Render a horizontal rule to visually separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_31(mo):
+def cell_31():
     """Introduce the Markdown and LaTeX support section."""
     mo.md(
         r"""
@@ -501,11 +470,10 @@ def cell_31(mo):
         Marimo has excellent support for rich text formatting using Markdown and LaTeX.
         """
     )
-    return
 
 
 @app.cell
-def cell_32(mo):
+def cell_32():
     """Render rich Markdown with LaTeX equations, code blocks, and formatting examples."""
     mo.md(
         r"""
@@ -549,18 +517,16 @@ def cell_32(mo):
         > This is a blockquote with important information!
         """
     )
-    return
 
 
 @app.cell
-def cell_33(mo):
+def cell_33():
     """Render a horizontal rule to visually separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_34(mo):
+def cell_34():
     """Introduce the Advanced Features section."""
     mo.md(
         r"""
@@ -569,11 +535,10 @@ def cell_34(mo):
         Here are some more advanced Marimo features worth exploring.
         """
     )
-    return
 
 
 @app.cell
-def cell_35(mo):
+def cell_35():
     """Render an informational callout about Marimo notebooks being plain Python files."""
     # Callout boxes for important information
     mo.callout(
@@ -590,11 +555,10 @@ def cell_35(mo):
         ),
         kind="info",
     )
-    return
 
 
 @app.cell
-def cell_36(mo):
+def cell_36():
     """Display an accordion with notes on reactivity, performance, and dependencies."""
     # Accordion for collapsible content
     mo.accordion(
@@ -624,18 +588,16 @@ def cell_36(mo):
             ),
         }
     )
-    return
 
 
 @app.cell
-def cell_37(mo):
+def cell_37():
     """Render a horizontal rule to visually separate sections."""
     mo.md(r"""---""")
-    return
 
 
 @app.cell
-def cell_38(mo):
+def cell_38():
     """Render the conclusion section of the Marimo showcase notebook."""
     mo.md(
         r"""
@@ -661,7 +623,6 @@ def cell_38(mo):
         **Happy exploring! 🚀**
         """
     )
-    return
 
 
 if __name__ == "__main__":
