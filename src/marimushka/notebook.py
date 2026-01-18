@@ -180,9 +180,7 @@ class Notebook:
         if not self.path.suffix == ".py":
             raise NotebookInvalidError(self.path, reason="not a Python file")
 
-    def export(  # noqa: PLR0912
-        self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None
-    ) -> NotebookExportResult:
+    def export(self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None) -> NotebookExportResult:
         """Export the notebook to HTML/WebAssembly format.
 
         This method exports the marimo notebook to HTML/WebAssembly format.
@@ -245,7 +243,7 @@ class Notebook:
         try:
             # Run marimo export command
             logger.debug(f"Running command: {cmd}")
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603  # nosec B603
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603
 
             nb_logger = logger.bind(subprocess=f"[{self.path.name}] ")
 

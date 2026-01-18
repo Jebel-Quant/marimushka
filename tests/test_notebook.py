@@ -594,7 +594,7 @@ class TestFolder2NotebooksHypothesis:
     @given(kind=st.sampled_from(list(Kind)))
     def test_empty_folder_returns_empty_list(self, kind: Kind):
         """Test that None or empty string folder returns empty list for any Kind."""
-        from marimushka.notebook import folder2notebooks  # noqa: PLC0415
+        from marimushka.notebook import folder2notebooks
 
         assert folder2notebooks(None, kind=kind) == []
         assert folder2notebooks("", kind=kind) == []
@@ -602,7 +602,7 @@ class TestFolder2NotebooksHypothesis:
     @given(kind=st.sampled_from(list(Kind)))
     def test_notebooks_have_correct_kind(self, kind: Kind):
         """Test that all notebooks from folder2notebooks have the specified kind."""
-        from marimushka.notebook import folder2notebooks  # noqa: PLC0415
+        from marimushka.notebook import folder2notebooks
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
@@ -620,7 +620,7 @@ class TestFolder2NotebooksHypothesis:
     @given(kind=st.sampled_from(list(Kind)))
     def test_notebooks_are_sorted(self, kind: Kind):
         """Test that notebooks from folder2notebooks are sorted alphabetically."""
-        from marimushka.notebook import folder2notebooks  # noqa: PLC0415
+        from marimushka.notebook import folder2notebooks
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)

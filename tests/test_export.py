@@ -515,7 +515,7 @@ class TestCallback:
     @patch("builtins.print")
     def test_callback_without_command(self, mock_print):
         """Test callback function when no command is provided."""
-        from marimushka.export import callback  # noqa: PLC0415
+        from marimushka.export import callback
 
         # Setup - create a mock context with no subcommand
         mock_ctx = MagicMock(spec=typer.Context)
@@ -532,7 +532,7 @@ class TestCallback:
 
     def test_callback_with_command(self):
         """Test callback function when a command is provided."""
-        from marimushka.export import callback  # noqa: PLC0415
+        from marimushka.export import callback
 
         # Setup - create a mock context with a subcommand
         mock_ctx = MagicMock(spec=typer.Context)
@@ -551,7 +551,7 @@ class TestMainTyper:
     @patch("marimushka.export.main")
     def test_main_typer_passes_parameters_directly(self, mock_main):
         """Test _main_typer function passes parameters directly to main()."""
-        from marimushka.export import _main_typer  # noqa: PLC0415
+        from marimushka.export import _main_typer
 
         # Execute - pass values directly (as Typer does after resolving Options)
         _main_typer(
@@ -582,7 +582,7 @@ class TestMainTyper:
     @patch("marimushka.export.main")
     def test_main_typer_with_string_values(self, mock_main):
         """Test _main_typer function with string values (not Option objects)."""
-        from marimushka.export import _main_typer  # noqa: PLC0415
+        from marimushka.export import _main_typer
 
         # Execute with regular string values
         _main_typer(
@@ -616,7 +616,7 @@ class TestWatchCommand:
 
     def test_watch_command_no_watchfiles(self):
         """Test watch command fails gracefully without watchfiles."""
-        from marimushka.export import watch  # noqa: PLC0415
+        from marimushka.export import watch
 
         # We can't easily test the ImportError case without actually
         # uninstalling watchfiles, so we just verify the function exists
@@ -625,7 +625,7 @@ class TestWatchCommand:
     @patch("marimushka.export.main")
     def test_watch_command_exists(self, mock_main):
         """Test that watch command is registered."""
-        from marimushka.export import app  # noqa: PLC0415
+        from marimushka.export import app
 
         # Get all registered commands
         commands = [cmd.name for cmd in app.registered_commands]
@@ -638,7 +638,7 @@ class TestWatchCommand:
     @patch("marimushka.export.rich_print")
     def test_watch_no_directories_to_watch(self, mock_print, tmp_path):
         """Test watch command exits when no directories exist to watch."""
-        from marimushka.export import watch  # noqa: PLC0415
+        from marimushka.export import watch
 
         # Use non-existent paths
         with pytest.raises(typer.Exit) as exc_info:
@@ -675,7 +675,7 @@ class TestWatchCommand:
             raise KeyboardInterrupt
 
         with patch("watchfiles.watch", mock_watch_generator):
-            from marimushka.export import watch  # noqa: PLC0415
+            from marimushka.export import watch
 
             watch(
                 output=str(tmp_path / "_site"),
@@ -720,7 +720,7 @@ class TestWatchCommand:
             raise KeyboardInterrupt
 
         with patch("watchfiles.watch", mock_watch_generator):
-            from marimushka.export import watch  # noqa: PLC0415
+            from marimushka.export import watch
 
             # Should not raise, should handle gracefully
             watch(
@@ -761,7 +761,7 @@ class TestWatchCommand:
             raise KeyboardInterrupt
 
         with patch("watchfiles.watch", mock_watch_generator):
-            from marimushka.export import watch  # noqa: PLC0415
+            from marimushka.export import watch
 
             watch(
                 output=str(tmp_path / "_site"),
@@ -801,7 +801,7 @@ class TestWatchCommand:
             raise KeyboardInterrupt
 
         with patch("watchfiles.watch", mock_watch_generator):
-            from marimushka.export import watch  # noqa: PLC0415
+            from marimushka.export import watch
 
             watch(
                 output=str(tmp_path / "_site"),
@@ -838,7 +838,7 @@ class TestWatchCommand:
             raise KeyboardInterrupt
 
         with patch("watchfiles.watch", mock_watch_generator):
-            from marimushka.export import watch  # noqa: PLC0415
+            from marimushka.export import watch
 
             watch(
                 output=str(tmp_path / "_site"),
@@ -875,7 +875,7 @@ class TestWatchCommand:
             raise KeyboardInterrupt
 
         with patch("watchfiles.watch", mock_watch_generator):
-            from marimushka.export import watch  # noqa: PLC0415
+            from marimushka.export import watch
 
             watch(
                 output=str(tmp_path / "custom_output"),
@@ -923,7 +923,7 @@ class TestWatchCommand:
             raise KeyboardInterrupt
 
         with patch("watchfiles.watch", mock_watch_generator):
-            from marimushka.export import watch  # noqa: PLC0415
+            from marimushka.export import watch
 
             watch(
                 output=str(tmp_path / "_site"),

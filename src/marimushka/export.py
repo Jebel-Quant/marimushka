@@ -131,7 +131,7 @@ def _export_notebook(
     return notebook.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
 
 
-def _export_notebooks_parallel(  # noqa: PLR0913
+def _export_notebooks_parallel(
     notebooks: list[Notebook],
     output_dir: Path,
     sandbox: bool,
@@ -199,7 +199,7 @@ def callback(ctx: typer.Context) -> None:
         raise typer.Exit()
 
 
-def _generate_index(  # noqa: PLR0912, PLR0913
+def _generate_index(
     output: Path,
     template_file: Path,
     notebooks: list[Notebook] | None = None,
@@ -340,7 +340,7 @@ def _generate_index(  # noqa: PLR0912, PLR0913
     return rendered_html
 
 
-def _main_impl(  # noqa: PLR0913
+def _main_impl(
     output: str | Path,
     template: str | Path,
     notebooks: str | Path,
@@ -446,7 +446,7 @@ def _main_impl(  # noqa: PLR0913
     )
 
 
-def main(  # noqa: PLR0913
+def main(
     output: str | Path = "_site",
     template: str | Path = Path(__file__).parent / "templates" / "tailwind.html.j2",
     notebooks: str | Path = "notebooks",
@@ -495,7 +495,7 @@ def main(  # noqa: PLR0913
 
 
 @app.command(name="export")  # type: ignore[misc]
-def _main_typer(  # noqa: PLR0913
+def _main_typer(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
         str(Path(__file__).parent / "templates" / "tailwind.html.j2"),
@@ -551,7 +551,7 @@ def _main_typer(  # noqa: PLR0913
 
 
 @app.command(name="watch")  # type: ignore[misc]
-def watch(  # noqa: PLR0913
+def watch(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
         str(Path(__file__).parent / "templates" / "tailwind.html.j2"),
@@ -577,7 +577,7 @@ def watch(  # noqa: PLR0913
     Requires the 'watchfiles' package: uv add watchfiles
     """
     try:
-        from watchfiles import watch as watchfiles_watch  # noqa: PLC0415
+        from watchfiles import watch as watchfiles_watch
     except ImportError:  # pragma: no cover
         rich_print("[bold red]Error:[/bold red] watchfiles package is required for watch mode.")
         rich_print("Install it with: [cyan]uv add watchfiles[/cyan]")
