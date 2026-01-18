@@ -9,7 +9,7 @@ def test_complete(resource_dir, tmp_path):
     # Call main function and capture the returned HTML
     html_output = main(
         notebooks=resource_dir / "marimo" / "notebooks",
-        apps=resource_dir / "marimo" /"apps",
+        apps=resource_dir / "marimo" / "apps",
         template=resource_dir / "templates" / "tailwind.html.j2",
         output=tmp_path / "output",
         notebooks_wasm=resource_dir / "marimo" / "notebooks_wasm",
