@@ -110,6 +110,7 @@ line-ending = "auto"
     "RUF002",   # Allow ambiguous unicode
     "RUF012",   # Allow mutable class attributes
 ]
+# this will also work book/marimo or test/resources/marimo ...
 "**/marimo/**/*.py" = [
     "N803",    # Allow non-lowercase variable names
     "S101",    # Allow assert statements
