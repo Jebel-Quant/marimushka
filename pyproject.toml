@@ -126,13 +126,3 @@ badge-format = "svg"
 # Deptry configuration
 [tool.deptry.package_module_name_map]
 beautifulsoup4 = "bs4"
-typer = "typer"
-jinja2 = "jinja2"
-loguru = "loguru"
-rich = "rich"
-watchfiles = "watchfiles"
-numpy = "numpy"
-marimo = "marimo"
-plotly = "plotly"
-pandas = "pandas"
-altair = "altair"
