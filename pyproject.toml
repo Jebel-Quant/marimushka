@@ -122,3 +122,7 @@ quiet = false
 color = true
 generate-badge = "."
 badge-format = "svg"
+
+# Deptry configuration
+[tool.deptry.package_module_name_map]
+beautifulsoup4 = "bs4"
