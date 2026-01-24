@@ -109,3 +109,21 @@ book:: test docs marimushka ## compile the companion book
 	  --output "_book"
 
 	@touch "_book/.nojekyll"
+
+	# Generate coverage badge JSON for shields.io endpoint
+	@if [ -f "_tests/coverage.json" ]; then \
+	  printf "${BLUE}[INFO] Generating coverage badge JSON...${RESET}\n"; \
+	  mkdir -p _book/tests; \
+	  ${UV_BIN} run python -c "\
+import json; \
+data = json.load(open('_tests/coverage.json')); \
+pct = int(data['totals']['percent_covered']); \
+color = 'brightgreen' if pct >= 90 else 'green' if pct >= 80 else 'yellow' if pct >= 70 else 'orange' if pct >= 60 else 'red'; \
+badge = {'schemaVersion': 1, 'label': 'coverage', 'message': f'{pct}%', 'color': color}; \
+json.dump(badge, open('_book/tests/coverage-badge.json', 'w'))"; \
+	  printf "${BLUE}[INFO] Coverage badge JSON:${RESET}\n"; \
+	  cat _book/tests/coverage-badge.json; \
+	  printf "\n"; \
+	else \
+	  printf "${YELLOW}[WARN] No coverage.json found, skipping badge generation${RESET}\n"; \
+	fi
