@@ -10,6 +10,12 @@
 # Default output directory for Marimushka (HTML exports of notebooks)
 MARIMUSHKA_OUTPUT ?= _marimushka
 
+# Logo file for pdoc (relative to project root).
+# 1. Defaults to the Rhiza logo if present.
+# 2. Can be overridden in Makefile or local.mk (e.g. LOGO_FILE := my-logo.png)
+# 3. If set to empty string, no logo will be used.
+LOGO_FILE ?= assets/rhiza-logo.svg
+
 # ----------------------------
 # Book sections (declarative)
 # ----------------------------
@@ -55,8 +61,19 @@ docs:: install ## create documentation with pdoc
 	    else \
 	      printf "${BLUE}[INFO] Using provided docformat: $$DOCFORMAT${RESET}\n"; \
 	    fi; \
+	    LOGO_ARG=""; \
+	    if [ -n "$(LOGO_FILE)" ]; then \
+	      if [ -f "$(LOGO_FILE)" ]; then \
+	        MIME=$$(file --mime-type -b "$(LOGO_FILE)"); \
+	        DATA=$$(base64 < "$(LOGO_FILE)" | tr -d '\n'); \
+	        LOGO_ARG="--logo data:$$MIME;base64,$$DATA"; \
+	        printf "${BLUE}[INFO] Embedding logo: $(LOGO_FILE)${RESET}\n"; \
+	      else \
+	        printf "${YELLOW}[WARN] Logo file $(LOGO_FILE) not found, skipping${RESET}\n"; \
+	      fi; \
+	    fi; \
 	    ${UV_BIN} pip install pdoc && \
-	    PYTHONPATH="${SOURCE_FOLDER}" ${UV_BIN} run pdoc --docformat $$DOCFORMAT --output-dir _pdoc $$TEMPLATE_ARG $$PKGS; \
+	    PYTHONPATH="${SOURCE_FOLDER}" ${UV_BIN} run pdoc --docformat $$DOCFORMAT --output-dir _pdoc $$TEMPLATE_ARG $$LOGO_ARG $$PKGS; \
 	  fi; \
 	else \
 	  printf "${YELLOW}[WARN] Source folder ${SOURCE_FOLDER} not found, skipping docs${RESET}\n"; \
@@ -69,6 +86,23 @@ docs:: install ## create documentation with pdoc
 book:: test docs marimushka ## compile the companion book
 	@printf "${BLUE}[INFO] Building combined documentation...${RESET}\n"
 	@rm -rf _book && mkdir -p _book
+
+	@if [ -f "_tests/coverage.json" ]; then \
+	  printf "${BLUE}[INFO] Generating coverage badge JSON...${RESET}\n"; \
+	  mkdir -p _book/tests; \
+	  ${UV_BIN} run python -c "\
+import json; \
+data = json.load(open('_tests/coverage.json')); \
+pct = int(data['totals']['percent_covered']); \
+color = 'brightgreen' if pct >= 90 else 'green' if pct >= 80 else 'yellow' if pct >= 70 else 'orange' if pct >= 60 else 'red'; \
+badge = {'schemaVersion': 1, 'label': 'coverage', 'message': f'{pct}%', 'color': color}; \
+json.dump(badge, open('_book/tests/coverage-badge.json', 'w'))"; \
+	  printf "${BLUE}[INFO] Coverage badge JSON:${RESET}\n"; \
+	  cat _book/tests/coverage-badge.json; \
+	  printf "\n"; \
+	else \
+	  printf "${YELLOW}[WARN] No coverage.json found, skipping badge generation${RESET}\n"; \
+	fi
 
 	@printf "{\n" > _book/links.json
 	@first=1; \
@@ -109,21 +143,3 @@ book:: test docs marimushka ## compile the companion book
 	  --output "_book"
 
 	@touch "_book/.nojekyll"
-
-	# Generate coverage badge JSON for shields.io endpoint
-	@if [ -f "_tests/coverage.json" ]; then \
-	  printf "${BLUE}[INFO] Generating coverage badge JSON...${RESET}\n"; \
-	  mkdir -p _book/tests; \
-	  ${UV_BIN} run python -c "\
-import json; \
-data = json.load(open('_tests/coverage.json')); \
-pct = int(data['totals']['percent_covered']); \
-color = 'brightgreen' if pct >= 90 else 'green' if pct >= 80 else 'yellow' if pct >= 70 else 'orange' if pct >= 60 else 'red'; \
-badge = {'schemaVersion': 1, 'label': 'coverage', 'message': f'{pct}%', 'color': color}; \
-json.dump(badge, open('_book/tests/coverage-badge.json', 'w'))"; \
-	  printf "${BLUE}[INFO] Coverage badge JSON:${RESET}\n"; \
-	  cat _book/tests/coverage-badge.json; \
-	  printf "\n"; \
-	else \
-	  printf "${YELLOW}[WARN] No coverage.json found, skipping badge generation${RESET}\n"; \
-	fi
