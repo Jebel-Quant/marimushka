@@ -18,6 +18,14 @@ class MarimushkaError(Exception):
     Attributes:
         message: Human-readable error description.
 
+    Examples:
+        >>> from marimushka.exceptions import MarimushkaError
+        >>> err = MarimushkaError("Something went wrong")
+        >>> err.message
+        'Something went wrong'
+        >>> str(err)
+        'Something went wrong'
+
     """
 
     def __init__(self, message: str) -> None:
