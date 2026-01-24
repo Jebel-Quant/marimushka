@@ -177,7 +177,7 @@ def _export_notebooks_parallel(
     return batch_result
 
 
-@app.callback(invoke_without_command=True)
+@app.callback(invoke_without_command=True)  # type: ignore[untyped-decorator]
 def callback(ctx: typer.Context) -> None:
     """Handle the CLI invocation without a subcommand.
 
@@ -494,7 +494,7 @@ def main(
     )
 
 
-@app.command(name="export")
+@app.command(name="export")  # type: ignore[untyped-decorator]
 def _main_typer(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -550,7 +550,7 @@ def _main_typer(
     )
 
 
-@app.command(name="watch")
+@app.command(name="watch")  # type: ignore[untyped-decorator]
 def watch(
     output: str = typer.Option("_site", "--output", "-o", help="Directory where the exported files will be saved"),
     template: str = typer.Option(
@@ -646,7 +646,7 @@ def watch(
         rich_print("\n[bold green]Watch mode stopped.[/bold green]")
 
 
-@app.command(name="version")
+@app.command(name="version")  # type: ignore[untyped-decorator]
 def version() -> None:
     """Display the current version of Marimushka.
 
