@@ -9,7 +9,7 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jebel-quant/marimushka/rhiza_release.yml?label=release)](https://github.com/jebel-quant/marimushka/actions/workflows/rhiza_release.yml)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![CodeFactor](https://www.codefactor.io/repository/github/jebel-quant/marimushka/badge)](https://www.codefactor.io/repository/github/jebel-quant/marimushka)
-[![Coverage](https://img.shields.io/endpoint?url=https://jebel-quant.github.io/marimushka/tests/coverage-badge.json)](https://jebel-quant.github.io/marimushka/tests/html-coverage/index.html)
+[![Coverage](https://img.shields.io/endpoint?url=https://jebel-quant.github.io/marimushka/tests/coverage-badge.json&cacheSeconds=3600)](https://jebel-quant.github.io/marimushka/tests/html-coverage/index.html)
 [![Downloads](https://static.pepy.tech/personalized-badge/marimushka?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/marimushka)
 [![GitHub stars](https://img.shields.io/github/stars/jebel-quant/marimushka)](https://github.com/jebel-quant/marimushka/stargazers)
 
