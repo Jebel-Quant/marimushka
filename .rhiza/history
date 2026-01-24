@@ -28,6 +28,7 @@
 .rhiza/.cfg.toml
 .rhiza/.env
 .rhiza/.gitignore
+.rhiza/.rhiza-version
 .rhiza/docs/CONFIG.md
 .rhiza/docs/TOKEN_SETUP.md
 .rhiza/make.d/01-custom-env.mk
@@ -49,9 +50,9 @@ book/README.md
 book/book.mk
 book/marimo/README.md
 book/marimo/marimo.mk
+book/marimo/notebooks/dummy.py
 book/marimo/notebooks/rhiza.py
 book/minibook-templates/custom.html.jinja2
-book/pdoc-templates/module.html.jinja2
 presentation/README.md
 presentation/presentation.mk
 pytest.ini
@@ -73,6 +74,7 @@ tests/test_rhiza/test_notebooks.py
 tests/test_rhiza/test_readme.py
 tests/test_rhiza/test_release_script.py
 tests/test_rhiza/test_requirements_folder.py
+tests/test_rhiza/test_rhiza_workflows.py
 tests/test_rhiza/test_structure.py
 tests/test_rhiza/test_version_matrix.py
 tests/tests.mk
