@@ -83,10 +83,12 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: "0.9.27"
+          version: "0.9.26"
 
       # Execute the notebook with the appropriate runner based on its content
       - name: Run notebook
+        env:
+          UV_EXTRA_INDEX_URL: ${{ secrets.UV_EXTRA_INDEX_URL }}
         run: |
           uvx uv run "${{ matrix.notebook }}"
           # uvx → creates a fresh ephemeral environment
