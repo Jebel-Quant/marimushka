@@ -50,7 +50,6 @@ book/README.md
 book/book.mk
 book/marimo/README.md
 book/marimo/marimo.mk
-book/marimo/notebooks/dummy.py
 book/marimo/notebooks/rhiza.py
 book/minibook-templates/custom.html.jinja2
 presentation/README.md
@@ -63,6 +62,7 @@ tests/test_rhiza/benchmarks/.gitignore
 tests/test_rhiza/benchmarks/README.md
 tests/test_rhiza/benchmarks/analyze_benchmarks.py
 tests/test_rhiza/conftest.py
+tests/test_rhiza/test_book.py
 tests/test_rhiza/test_check_workflow_names.py
 tests/test_rhiza/test_docstrings.py
 tests/test_rhiza/test_git_repo_fixture.py
