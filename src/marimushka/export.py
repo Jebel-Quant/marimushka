@@ -177,6 +177,170 @@ def _export_notebooks_parallel(
     return batch_result
 
 
+def _export_notebooks_sequential(
+    notebooks: list[Notebook],
+    output_dir: Path,
+    sandbox: bool,
+    bin_path: Path | None,
+    progress: Progress | None = None,
+    task_id: TaskID | None = None,
+) -> BatchExportResult:
+    """Export notebooks sequentially.
+
+    Args:
+        notebooks: List of notebooks to export.
+        output_dir: Output directory for exported HTML files.
+        sandbox: Whether to use sandbox mode.
+        bin_path: Custom path to uvx executable.
+        progress: Optional Rich Progress instance for progress tracking.
+        task_id: Optional task ID for progress updates.
+
+    Returns:
+        BatchExportResult containing individual results and summary statistics.
+
+    """
+    batch_result = BatchExportResult()
+
+    for nb in notebooks:
+        result = nb.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
+        batch_result.add(result)
+        if progress and task_id is not None:
+            progress.advance(task_id)
+
+    return batch_result
+
+
+def _export_all_notebooks(
+    output: Path,
+    notebooks: list[Notebook],
+    apps: list[Notebook],
+    notebooks_wasm: list[Notebook],
+    sandbox: bool,
+    bin_path: Path | None,
+    parallel: bool,
+    max_workers: int,
+) -> BatchExportResult:
+    """Export all notebooks with progress tracking.
+
+    Args:
+        output: Base output directory.
+        notebooks: List of notebooks for static HTML export.
+        apps: List of notebooks for app export.
+        notebooks_wasm: List of notebooks for interactive WebAssembly export.
+        sandbox: Whether to use sandbox mode.
+        bin_path: Custom path to uvx executable.
+        parallel: Whether to export notebooks in parallel.
+        max_workers: Maximum number of parallel workers.
+
+    Returns:
+        BatchExportResult containing all export results.
+
+    """
+    total_notebooks = len(notebooks) + len(apps) + len(notebooks_wasm)
+    combined_batch_result = BatchExportResult()
+
+    if total_notebooks == 0:
+        return combined_batch_result
+
+    # Define notebook categories and their output directories
+    notebook_categories = [
+        (notebooks, output / "notebooks"),
+        (apps, output / "apps"),
+        (notebooks_wasm, output / "notebooks_wasm"),
+    ]
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TextColumn("[cyan]{task.completed}/{task.total}"),
+    ) as progress:
+        task = progress.add_task("[green]Exporting notebooks...", total=total_notebooks)
+
+        for nb_list, out_dir in notebook_categories:
+            if not nb_list:
+                continue
+
+            if parallel:
+                batch_result = _export_notebooks_parallel(
+                    nb_list, out_dir, sandbox, bin_path, max_workers, progress, task
+                )
+            else:
+                batch_result = _export_notebooks_sequential(nb_list, out_dir, sandbox, bin_path, progress, task)
+
+            for result in batch_result.results:
+                combined_batch_result.add(result)
+
+    if combined_batch_result.failed > 0:  # pragma: no cover
+        logger.warning(
+            f"Export completed: {combined_batch_result.succeeded} succeeded, {combined_batch_result.failed} failed"
+        )
+        for failure in combined_batch_result.failures:
+            error_detail = str(failure.error) if failure.error else "Unknown error"
+            logger.debug(f"  - {failure.notebook_path.name}: {error_detail}")
+
+    return combined_batch_result
+
+
+def _render_template(
+    template_file: Path,
+    notebooks: list[Notebook],
+    apps: list[Notebook],
+    notebooks_wasm: list[Notebook],
+) -> str:
+    """Render the index template with notebook data.
+
+    Args:
+        template_file: Path to the Jinja2 template file.
+        notebooks: List of notebooks for static HTML export.
+        apps: List of notebooks for app export.
+        notebooks_wasm: List of notebooks for interactive WebAssembly export.
+
+    Returns:
+        The rendered HTML content as a string.
+
+    Raises:
+        TemplateRenderError: If the template fails to render.
+
+    """
+    template_dir = template_file.parent
+    template_name = template_file.name
+
+    try:
+        env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(template_dir), autoescape=jinja2.select_autoescape(["html", "xml"])
+        )
+        template = env.get_template(template_name)
+
+        return template.render(
+            notebooks=notebooks,
+            apps=apps,
+            notebooks_wasm=notebooks_wasm,
+        )
+    except jinja2.exceptions.TemplateError as e:
+        raise TemplateRenderError(template_file, e) from e
+
+
+def _write_index_file(index_path: Path, content: str) -> None:
+    """Write the rendered HTML content to the index file.
+
+    Args:
+        index_path: Path where the index.html file will be written.
+        content: The rendered HTML content to write.
+
+    Raises:
+        IndexWriteError: If the file cannot be written.
+
+    """
+    try:
+        with Path.open(index_path, "w") as f:
+            f.write(content)
+        logger.info(f"Successfully generated index file at {index_path}")
+    except OSError as e:
+        raise IndexWriteError(index_path, e) from e
+
+
 @app.callback(invoke_without_command=True)
 def callback(ctx: typer.Context) -> None:
     """Handle the CLI invocation without a subcommand.
@@ -235,107 +399,28 @@ def _generate_index(
         IndexWriteError: If the index file cannot be written.
 
     """
-    # Initialize empty lists if None is provided
     notebooks = notebooks or []
     apps = apps or []
     notebooks_wasm = notebooks_wasm or []
 
-    total_notebooks = len(notebooks) + len(apps) + len(notebooks_wasm)
-    combined_batch_result = BatchExportResult()
-
-    if total_notebooks > 0:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            TextColumn("[cyan]{task.completed}/{task.total}"),
-        ) as progress:
-            # Create progress tasks for each category
-            if parallel:
-                # Parallel export with combined progress
-                task = progress.add_task("[green]Exporting notebooks...", total=total_notebooks)
-
-                all_notebooks = [
-                    (notebooks, output / "notebooks"),
-                    (apps, output / "apps"),
-                    (notebooks_wasm, output / "notebooks_wasm"),
-                ]
-
-                for nb_list, out_dir in all_notebooks:
-                    if nb_list:
-                        batch_result = _export_notebooks_parallel(
-                            nb_list, out_dir, sandbox, bin_path, max_workers, progress, task
-                        )
-                        for result in batch_result.results:
-                            combined_batch_result.add(result)
-
-                if combined_batch_result.failed > 0:  # pragma: no cover
-                    logger.warning(
-                        f"Export completed: {combined_batch_result.succeeded} succeeded, "
-                        f"{combined_batch_result.failed} failed"
-                    )
-                    for failure in combined_batch_result.failures:
-                        error_detail = str(failure.error) if failure.error else "Unknown error"
-                        logger.debug(f"  - {failure.notebook_path.name}: {error_detail}")
-            else:
-                # Sequential export with progress bar
-                task = progress.add_task("[green]Exporting notebooks...", total=total_notebooks)
-
-                for nb in notebooks:
-                    result = nb.export(output_dir=output / "notebooks", sandbox=sandbox, bin_path=bin_path)
-                    combined_batch_result.add(result)
-                    progress.advance(task)
-
-                for nb in apps:
-                    result = nb.export(output_dir=output / "apps", sandbox=sandbox, bin_path=bin_path)
-                    combined_batch_result.add(result)
-                    progress.advance(task)
-
-                for nb in notebooks_wasm:
-                    result = nb.export(output_dir=output / "notebooks_wasm", sandbox=sandbox, bin_path=bin_path)
-                    combined_batch_result.add(result)
-                    progress.advance(task)
-
-                if combined_batch_result.failed > 0:  # pragma: no cover
-                    logger.warning(
-                        f"Export completed: {combined_batch_result.succeeded} succeeded, "
-                        f"{combined_batch_result.failed} failed"
-                    )
-
-    # Create the full path for the index.html file
-    index_path: Path = Path(output) / "index.html"
+    # Export all notebooks with progress tracking
+    _export_all_notebooks(
+        output=output,
+        notebooks=notebooks,
+        apps=apps,
+        notebooks_wasm=notebooks_wasm,
+        sandbox=sandbox,
+        bin_path=bin_path,
+        parallel=parallel,
+        max_workers=max_workers,
+    )
 
     # Ensure the output directory exists
-    Path(output).mkdir(parents=True, exist_ok=True)
+    output.mkdir(parents=True, exist_ok=True)
 
-    # Set up Jinja2 environment and load template
-    template_dir = template_file.parent
-    template_name = template_file.name
-
-    try:
-        # Create Jinja2 environment and load template
-        env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(template_dir), autoescape=jinja2.select_autoescape(["html", "xml"])
-        )
-        template = env.get_template(template_name)
-
-        # Render the template with notebook and app data
-        rendered_html: str = template.render(
-            notebooks=notebooks,
-            apps=apps,
-            notebooks_wasm=notebooks_wasm,
-        )
-    except jinja2.exceptions.TemplateError as e:
-        raise TemplateRenderError(template_file, e) from e
-
-    # Write the rendered HTML to the index.html file
-    try:
-        with Path.open(index_path, "w") as f:
-            f.write(rendered_html)
-        logger.info(f"Successfully generated index file at {index_path}")
-    except OSError as e:
-        raise IndexWriteError(index_path, e) from e
+    # Render template and write index file
+    rendered_html = _render_template(template_file, notebooks, apps, notebooks_wasm)
+    _write_index_file(output / "index.html", rendered_html)
 
     return rendered_html
 
