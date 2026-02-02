@@ -31,6 +31,7 @@ from marimushka.exceptions import (
 from marimushka.export import (
     _export_notebook,
     _export_notebooks_parallel,
+    _export_notebooks_sequential,
     _generate_index,
     _validate_template,
     main,
@@ -245,6 +246,44 @@ class TestExportNotebooksParallel:
         assert result.succeeded == 2
         assert result.failed == 1
         assert result.all_succeeded is False
+
+
+class TestExportNotebooksSequential:
+    """Tests for the _export_notebooks_sequential function."""
+
+    def test_export_notebooks_sequential_without_progress(self):
+        """Test sequential export without progress tracking (progress=None)."""
+        # Setup
+        mock_notebooks = []
+        for i in range(3):
+            nb = MagicMock()
+            nb.path = Path(f"/nb{i}.py")
+            nb.export.return_value = NotebookExportResult.succeeded(Path(f"/nb{i}.py"), Path(f"/output/nb{i}.html"))
+            mock_notebooks.append(nb)
+
+        # Execute - explicitly pass progress=None to cover the branch
+        result = _export_notebooks_sequential(
+            mock_notebooks, Path("/output"), sandbox=True, bin_path=None, progress=None, task_id=None
+        )
+
+        # Assert
+        assert isinstance(result, BatchExportResult)
+        assert result.succeeded == 3
+        assert result.failed == 0
+        assert result.all_succeeded is True
+        # Verify all notebooks were exported
+        for nb in mock_notebooks:
+            nb.export.assert_called_once_with(output_dir=Path("/output"), sandbox=True, bin_path=None)
+
+    def test_export_notebooks_sequential_empty_list(self):
+        """Test sequential export with empty list."""
+        # Execute
+        result = _export_notebooks_sequential([], Path("/output"), sandbox=True, bin_path=None)
+
+        # Assert
+        assert isinstance(result, BatchExportResult)
+        assert result.succeeded == 0
+        assert result.failed == 0
 
 
 class TestGenerateIndex:
