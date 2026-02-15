@@ -54,6 +54,7 @@ from .exceptions import (
     NotebookInvalidError,
     NotebookNotFoundError,
     OutputError,
+    ProgressCallback,
     TemplateError,
     TemplateInvalidError,
     TemplateNotFoundError,
@@ -79,6 +80,8 @@ __all__ = [
     "NotebookNotFoundError",
     # Output exceptions
     "OutputError",
+    # Progress callback
+    "ProgressCallback",
     # Template exceptions
     "TemplateError",
     "TemplateInvalidError",

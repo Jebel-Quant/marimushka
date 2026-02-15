@@ -17,6 +17,7 @@ from .exceptions import (
     BatchExportResult,
     IndexWriteError,
     NotebookExportResult,
+    ProgressCallback,
     TemplateRenderError,
 )
 from .notebook import Notebook
@@ -59,6 +60,7 @@ def export_notebooks_parallel(
     progress: Progress | None = None,
     task_id: TaskID | None = None,
     timeout: int = 300,
+    on_progress: ProgressCallback | None = None,
 ) -> BatchExportResult:
     """Export notebooks in parallel using a thread pool.
 
@@ -71,6 +73,8 @@ def export_notebooks_parallel(
         progress: Optional Rich Progress instance for progress tracking.
         task_id: Optional task ID for progress updates.
         timeout: Maximum time in seconds for each export. Defaults to 300.
+        on_progress: Optional callback called after each notebook export.
+                    Signature: on_progress(completed, total, notebook_name)
 
     Returns:
         BatchExportResult containing individual results and summary statistics.
@@ -84,16 +88,24 @@ def export_notebooks_parallel(
     if not notebooks:
         return batch_result
 
+    total_notebooks = len(notebooks)
+    completed_count = 0
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(export_notebook, nb, output_dir, sandbox, bin_path, timeout): nb for nb in notebooks}
 
         for future in as_completed(futures):
             result = future.result()
             batch_result.add(result)
+            completed_count += 1
 
             if not result.success:
                 error_msg = sanitize_error_message(str(result.error)) if result.error else "Unknown error"
                 logger.error(f"Failed to export {result.notebook_path.name}: {error_msg}")
+
+            # Call user callback if provided
+            if on_progress:
+                on_progress(completed_count, total_notebooks, result.notebook_path.name)
 
             if progress and task_id is not None:
                 progress.advance(task_id)
@@ -109,6 +121,7 @@ def export_notebooks_sequential(
     progress: Progress | None = None,
     task_id: TaskID | None = None,
     timeout: int = 300,
+    on_progress: ProgressCallback | None = None,
 ) -> BatchExportResult:
     """Export notebooks sequentially.
 
@@ -120,16 +133,24 @@ def export_notebooks_sequential(
         progress: Optional Rich Progress instance for progress tracking.
         task_id: Optional task ID for progress updates.
         timeout: Maximum time in seconds for each export. Defaults to 300.
+        on_progress: Optional callback called after each notebook export.
+                    Signature: on_progress(completed, total, notebook_name)
 
     Returns:
         BatchExportResult containing individual results and summary statistics.
 
     """
     batch_result = BatchExportResult()
+    total_notebooks = len(notebooks)
 
-    for nb in notebooks:
+    for idx, nb in enumerate(notebooks, 1):
         result = nb.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path, timeout=timeout)
         batch_result.add(result)
+
+        # Call user callback if provided
+        if on_progress:
+            on_progress(idx, total_notebooks, nb.path.name)
+
         if progress and task_id is not None:
             progress.advance(task_id)
 
@@ -146,6 +167,7 @@ def export_all_notebooks(
     parallel: bool,
     max_workers: int,
     timeout: int = 300,
+    on_progress: ProgressCallback | None = None,
 ) -> BatchExportResult:
     """Export all notebooks with progress tracking.
 
@@ -159,6 +181,8 @@ def export_all_notebooks(
         parallel: Whether to export notebooks in parallel.
         max_workers: Maximum number of parallel workers.
         timeout: Maximum time in seconds for each export. Defaults to 300.
+        on_progress: Optional callback called after each notebook export.
+                    Signature: on_progress(completed, total, notebook_name)
 
     Returns:
         BatchExportResult containing all export results.
@@ -192,10 +216,12 @@ def export_all_notebooks(
 
             if parallel:
                 batch_result = export_notebooks_parallel(
-                    nb_list, out_dir, sandbox, bin_path, max_workers, progress, task, timeout
+                    nb_list, out_dir, sandbox, bin_path, max_workers, progress, task, timeout, on_progress
                 )
             else:
-                batch_result = export_notebooks_sequential(nb_list, out_dir, sandbox, bin_path, progress, task, timeout)
+                batch_result = export_notebooks_sequential(
+                    nb_list, out_dir, sandbox, bin_path, progress, task, timeout, on_progress
+                )
 
             for result in batch_result.results:
                 combined_batch_result.add(result)
@@ -297,6 +323,7 @@ def generate_index(
     parallel: bool = True,
     max_workers: int = 4,
     timeout: int = 300,
+    on_progress: ProgressCallback | None = None,
     audit_logger: AuditLogger | None = None,
 ) -> str:
     """Generate an index.html file that lists all the notebooks.
@@ -344,6 +371,7 @@ def generate_index(
         parallel=parallel,
         max_workers=max_workers,
         timeout=timeout,
+        on_progress=on_progress,
     )
 
     # Ensure the output directory exists
