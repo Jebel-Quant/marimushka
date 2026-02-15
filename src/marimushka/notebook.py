@@ -48,7 +48,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from .audit import get_audit_logger
+from .audit import AuditLogger, get_audit_logger
 from .exceptions import (
     ExportError,
     ExportExecutableNotFoundError,
@@ -249,7 +249,7 @@ class Notebook:
         cmd = self._build_command(exe, sandbox, output_file)
         return self._run_export_subprocess(cmd, output_file, timeout, audit_logger)
 
-    def _resolve_executable(self, bin_path: Path | None, audit_logger) -> str | NotebookExportResult:
+    def _resolve_executable(self, bin_path: Path | None, audit_logger: AuditLogger) -> str | NotebookExportResult:
         """Resolve the executable path.
 
         Args:
@@ -292,7 +292,7 @@ class Notebook:
 
         return exe
 
-    def _prepare_output_path(self, output_dir: Path, audit_logger) -> Path | NotebookExportResult:
+    def _prepare_output_path(self, output_dir: Path, audit_logger: AuditLogger) -> Path | NotebookExportResult:
         """Validate and prepare the output path.
 
         Args:
@@ -359,7 +359,7 @@ class Notebook:
         return cmd
 
     def _run_export_subprocess(
-        self, cmd: list[str], output_file: Path, timeout: int, audit_logger
+        self, cmd: list[str], output_file: Path, timeout: int, audit_logger: AuditLogger
     ) -> NotebookExportResult:
         """Run the export subprocess and handle results.
 
@@ -420,11 +420,11 @@ class Notebook:
             return NotebookExportResult.failed(self.path, err)
         except FileNotFoundError as e:
             # Executable not found in PATH
-            err = ExportExecutableNotFoundError(cmd[0])
+            exec_err = ExportExecutableNotFoundError(cmd[0])
             sanitized_error = sanitize_error_message(str(e))
-            logger.error(f"{err}: {sanitized_error}")
+            logger.error(f"{exec_err}: {sanitized_error}")
             audit_logger.log_export(self.path, None, False, sanitized_error)
-            return NotebookExportResult.failed(self.path, err)
+            return NotebookExportResult.failed(self.path, exec_err)
         except subprocess.SubprocessError as e:
             sanitized_error = sanitize_error_message(str(e))
             err = ExportSubprocessError(
