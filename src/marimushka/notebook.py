@@ -214,6 +214,7 @@ class Notebook:
         sandbox: bool = True,
         bin_path: Path | None = None,
         timeout: int = 300,
+        audit_logger: AuditLogger | None = None,
     ) -> NotebookExportResult:
         """Export the notebook to HTML/WebAssembly format.
 
@@ -227,12 +228,14 @@ class Notebook:
             sandbox: Whether to run the notebook in a sandbox. Defaults to True.
             bin_path: The directory where the executable is located. Defaults to None.
             timeout: Maximum time in seconds for the export process. Defaults to 300.
+            audit_logger: Logger for audit events. If None, uses default logger.
 
         Returns:
             NotebookExportResult indicating success or failure with details.
 
         """
-        audit_logger = get_audit_logger()
+        if audit_logger is None:
+            audit_logger = get_audit_logger()
 
         # Resolve executable
         exe = self._resolve_executable(bin_path, audit_logger)

@@ -11,7 +11,7 @@ This module contains tests for the functions in the export.py module:
 
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import ANY, MagicMock, mock_open, patch
 
 import jinja2
 import pytest
@@ -441,9 +441,9 @@ class TestGenerateIndex:
 class TestMain:
     """Tests for the main function."""
 
-    @patch("marimushka.validators.validate_template")
+    @patch("marimushka.export.validate_template")
     @patch("marimushka.export.folder2notebooks")
-    @patch("marimushka.orchestrator.generate_index")
+    @patch("marimushka.export.generate_index")
     def test_main_success(self, mock_generate_index, mock_folder2notebooks, mock_validate):
         """Test successful execution of the main function."""
         # Setup
@@ -462,9 +462,9 @@ class TestMain:
         mock_folder2notebooks.assert_any_call(folder="notebooks", kind=Kind.NB_WASM)
         mock_generate_index.assert_called_once()
 
-    @patch("marimushka.validators.validate_template")
+    @patch("marimushka.export.validate_template")
     @patch("marimushka.export.folder2notebooks")
-    @patch("marimushka.orchestrator.generate_index")
+    @patch("marimushka.export.generate_index")
     def test_main_no_notebooks_or_apps(self, mock_generate_index, mock_folder2notebooks, mock_validate):
         """Test handling of no notebooks or apps found."""
         # Setup
@@ -480,9 +480,9 @@ class TestMain:
         mock_folder2notebooks.assert_any_call(folder="notebooks", kind=Kind.NB_WASM)
         mock_generate_index.assert_not_called()
 
-    @patch("marimushka.validators.validate_template")
+    @patch("marimushka.export.validate_template")
     @patch("marimushka.export.folder2notebooks")
-    @patch("marimushka.orchestrator.generate_index")
+    @patch("marimushka.export.generate_index")
     def test_main_custom_paths(self, mock_generate_index, mock_folder2notebooks, mock_validate, tmp_path):
         """Test main function with custom paths."""
         # Setup
@@ -523,11 +523,12 @@ class TestMain:
             parallel=True,
             max_workers=4,
             timeout=300,
+            audit_logger=ANY,  # audit_logger is created internally
         )
 
-    @patch("marimushka.validators.validate_template")
+    @patch("marimushka.export.validate_template")
     @patch("marimushka.export.folder2notebooks")
-    @patch("marimushka.orchestrator.generate_index")
+    @patch("marimushka.export.generate_index")
     def test_main_parallel_options(self, mock_generate_index, mock_folder2notebooks, mock_validate, tmp_path):
         """Test main function with parallel options."""
         # Setup
