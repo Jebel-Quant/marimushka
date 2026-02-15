@@ -39,7 +39,15 @@ with a web browser - no Python installation required!
 - 🌐 **Generate an index page** that lists all your notebooks and apps
 - 🔄 **Integrate with GitHub Actions** for automated deployment
 - 🔍 **Recursive directory scanning** to find all notebooks in a project
-- 🧩 **Flexible configuration** with command-line options and Python API
+- 🧩 **Flexible configuration** with command-line options, Python API, and config files
+- 🔒 **Security-first design** with multiple protection layers
+  - Path traversal protection
+  - TOCTOU race condition prevention
+  - DoS protections (file size limits, timeouts, worker bounds)
+  - Error message sanitization
+  - Subresource Integrity (SRI) for CDN resources
+  - Audit logging for security events
+  - Secure file permissions
 
 ## 📋 Requirements
 
@@ -84,6 +92,29 @@ uvx marimushka export --notebooks path/to/notebooks --apps path/to/apps
 # Disable sandbox mode (use project environment)
 uvx marimushka export --no-sandbox
 ```
+
+### Configuration File
+
+Marimushka supports configuration via a `.marimushka.toml` file in your project root:
+
+```toml
+[marimushka]
+output = "_site"
+notebooks = "notebooks"
+apps = "apps"
+sandbox = true
+parallel = true
+max_workers = 4
+timeout = 300
+
+[marimushka.security]
+audit_enabled = true
+audit_log = ".marimushka-audit.log"
+max_file_size_mb = 10
+file_permissions = "0o644"
+```
+
+See `.marimushka.toml.example` in the repository for a complete example with documentation.
 
 ### Project Structure
 
@@ -245,6 +276,16 @@ Example template structure:
 </body>
 </html>
 ```
+
+## 🔒 Security
+
+Marimushka is designed with security as a priority. See [SECURITY.md](SECURITY.md) for details on:
+
+- Security features and protections
+- Best practices for secure deployment
+- Configuration options for enhanced security
+- Audit logging
+- Vulnerability reporting
 
 ## 👥 Contributing
 

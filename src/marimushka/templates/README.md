@@ -12,6 +12,38 @@ This template uses Tailwind's utility
 classes for styling, resulting in a modern, responsive design.
 The Tailwind CSS is loaded via CDN, so no additional installation is required.
 
+## Security Features
+
+### Subresource Integrity (SRI)
+
+All CDN resources in the templates use Subresource Integrity (SRI) hashes to ensure
+that the resources loaded from CDN have not been tampered with. This protects against
+supply chain attacks and CDN compromises.
+
+**Example:**
+```html
+<script src="https://cdn.tailwindcss.com" 
+        integrity="sha384-3hzR1LPXnJXuQpMFqYlPR4hZjbphRCkXWPMB5vzRV7rLKqHa1vW+RNa3f4aGdvPC" 
+        crossorigin="anonymous"></script>
+```
+
+**Note:** SRI hashes need to be updated when the CDN resource changes. You can generate
+new hashes using online tools or the `openssl` command:
+
+```bash
+curl -s https://cdn.example.com/resource.js | openssl dgst -sha384 -binary | openssl base64 -A
+```
+
+### Content Security Policy
+
+When deploying to production, consider adding a Content Security Policy (CSP) header
+to further restrict resource loading:
+
+```html
+<meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://raw.githubusercontent.com;">
+```
+
 ## Using a Custom Template
 
 You can specify which template to use when running Marimushka:
@@ -55,3 +87,14 @@ Each Notebook object has the following properties:
 
 - `display_name`: The display name of the notebook
 - `html_path`: The path to the exported HTML file
+
+## Template Security Best Practices
+
+When creating custom templates:
+
+1. **Always use SRI hashes** for external CDN resources
+2. **Use `crossorigin="anonymous"`** for CDN resources
+3. **Avoid inline scripts** where possible (use CSP-compatible patterns)
+4. **Sanitize any user-provided data** (though templates don't accept user input)
+5. **Keep dependencies minimal** to reduce attack surface
+6. **Use HTTPS URLs only** for all external resources

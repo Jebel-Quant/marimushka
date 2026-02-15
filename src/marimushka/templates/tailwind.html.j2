@@ -4,15 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>marimo WebAssembly + GitHub Pages</title>
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS via CDN with SRI -->
+    <script src="https://cdn.tailwindcss.com" 
+            integrity="sha384-3hzR1LPXnJXuQpMFqYlPR4hZjbphRCkXWPMB5vzRV7rLKqHa1vW+RNa3f4aGdvPC" 
+            crossorigin="anonymous"></script>
 </head>
 <body class="bg-white text-gray-800 font-sans">
     <div class="max-w-4xl mx-auto p-4">
         <!-- Header -->
         <header class="bg-gray-100 rounded-lg p-6 mb-8 text-center">
             <img src="https://raw.githubusercontent.com/marimo-team/marimo/main/docs/_static/marimo-logotype-thick.svg"
-                 alt="marimo Logo" class="w-20 h-auto mx-auto mb-3">
+                 alt="marimo Logo" 
+                 class="w-20 h-auto mx-auto mb-3"
+                 crossorigin="anonymous">
             <h1 class="text-2xl font-bold mb-2">marimo WebAssembly + GitHub Pages</h1>
             <p class="text-gray-600">Interactive Python notebooks exported to WebAssembly and deployed to GitHub Pages</p>
         </header>

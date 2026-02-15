@@ -48,6 +48,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from .audit import AuditLogger, get_audit_logger
 from .exceptions import (
     ExportError,
     ExportExecutableNotFoundError,
@@ -56,7 +57,7 @@ from .exceptions import (
     NotebookInvalidError,
     NotebookNotFoundError,
 )
-from .security import validate_bin_path, validate_path_traversal
+from .security import sanitize_error_message, set_secure_file_permissions, validate_bin_path, validate_path_traversal
 
 
 class Kind(Enum):
@@ -231,70 +232,147 @@ class Notebook:
             NotebookExportResult indicating success or failure with details.
 
         """
+        audit_logger = get_audit_logger()
+
+        # Resolve executable
+        exe = self._resolve_executable(bin_path, audit_logger)
+        if isinstance(exe, NotebookExportResult):
+            return exe
+
+        # Prepare output path
+        output_file_or_error = self._prepare_output_path(output_dir, audit_logger)
+        if isinstance(output_file_or_error, NotebookExportResult):
+            return output_file_or_error
+        output_file = output_file_or_error
+
+        # Build and run command
+        cmd = self._build_command(exe, sandbox, output_file)
+        return self._run_export_subprocess(cmd, output_file, timeout, audit_logger)
+
+    def _resolve_executable(self, bin_path: Path | None, audit_logger: AuditLogger) -> str | NotebookExportResult:
+        """Resolve the executable path.
+
+        Args:
+            bin_path: Optional directory where the executable is located.
+            audit_logger: Audit logger for security logging.
+
+        Returns:
+            Executable string on success, or NotebookExportResult on error.
+
+        """
         executable = "uvx"
-        exe: str | None = None
 
-        if bin_path:
-            # Validate bin_path for security
-            try:
-                validated_bin_path = validate_bin_path(bin_path)
-            except ValueError as e:
-                err: ExportError = ExportExecutableNotFoundError(executable, bin_path)
-                logger.error(f"Invalid bin_path: {e}")
-                return NotebookExportResult.failed(self.path, err)
+        if not bin_path:
+            return executable
 
-            # Construct the full executable path
-            # Use shutil.which to find it with platform-specific extensions (like .exe on Windows)
-            exe = shutil.which(executable, path=str(validated_bin_path))
-            if not exe:
-                # Fallback: try constructing the path directly
-                exe_path = validated_bin_path / executable
-                if exe_path.is_file() and os.access(exe_path, os.X_OK):
-                    exe = str(exe_path)
-                else:
-                    err = ExportExecutableNotFoundError(executable, validated_bin_path)
-                    logger.error(str(err))
-                    return NotebookExportResult.failed(self.path, err)
-        else:
-            exe = executable
+        # Validate bin_path for security
+        try:
+            validated_bin_path = validate_bin_path(bin_path)
+            audit_logger.log_path_validation(bin_path, "bin_path", True)
+        except ValueError as e:
+            err: ExportError = ExportExecutableNotFoundError(executable, bin_path)
+            sanitized_error = sanitize_error_message(str(e))
+            logger.error(f"Invalid bin_path: {sanitized_error}")
+            audit_logger.log_path_validation(bin_path, "bin_path", False, sanitized_error)
+            return NotebookExportResult.failed(self.path, err)
 
+        # Construct the full executable path
+        # Use shutil.which to find it with platform-specific extensions (like .exe on Windows)
+        exe = shutil.which(executable, path=str(validated_bin_path))
+        if not exe:
+            # Fallback: try constructing the path directly
+            exe_path = validated_bin_path / executable
+            if exe_path.is_file() and os.access(exe_path, os.X_OK):
+                return str(exe_path)
+
+            err = ExportExecutableNotFoundError(executable, validated_bin_path)
+            logger.error(str(err))
+            audit_logger.log_export(self.path, None, False, str(err))
+            return NotebookExportResult.failed(self.path, err)
+
+        return exe
+
+    def _prepare_output_path(self, output_dir: Path, audit_logger: AuditLogger) -> Path | NotebookExportResult:
+        """Validate and prepare the output path.
+
+        Args:
+            output_dir: Directory where the exported HTML file will be saved.
+            audit_logger: Audit logger for security logging.
+
+        Returns:
+            Output file Path on success, or NotebookExportResult on error.
+
+        """
+        output_file = output_dir / f"{self.path.stem}.html"
+
+        # Validate output path to prevent path traversal
+        try:
+            validate_path_traversal(output_file)
+            audit_logger.log_path_validation(output_file, "output_path", True)
+        except ValueError as e:
+            sanitized_error = sanitize_error_message(str(e))
+            err = ExportSubprocessError(
+                notebook_path=self.path,
+                command=[],  # Command not yet built
+                return_code=-1,
+                stderr=f"Invalid output path: {sanitized_error}",
+            )
+            logger.error(str(err))
+            audit_logger.log_path_validation(output_file, "output_path", False, sanitized_error)
+            return NotebookExportResult.failed(self.path, err)
+
+        # Create output directory
+        try:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as e:  # pragma: no cover
+            sanitized_error = sanitize_error_message(str(e))
+            err = ExportSubprocessError(
+                notebook_path=self.path,
+                command=[],  # Command not yet built
+                return_code=-1,
+                stderr=f"Failed to create output directory: {sanitized_error}",
+            )
+            logger.error(str(err))
+            audit_logger.log_export(self.path, None, False, sanitized_error)
+            return NotebookExportResult.failed(self.path, err)
+
+        return output_file
+
+    def _build_command(self, exe: str, sandbox: bool, output_file: Path) -> list[str]:
+        """Build the export command.
+
+        Args:
+            exe: Executable to use (e.g., 'uvx' or full path).
+            sandbox: Whether to run the notebook in a sandbox.
+            output_file: Path where the exported HTML file will be saved.
+
+        Returns:
+            Command list ready for subprocess execution.
+
+        """
         cmd = [exe, *self.kind.command]
         if sandbox:
             cmd.append("--sandbox")
         else:
             cmd.append("--no-sandbox")
-
-        # Create the full output path and ensure the directory exists
-        output_file: Path = output_dir / f"{self.path.stem}.html"
-
-        # Validate output path to prevent path traversal
-        try:
-            validate_path_traversal(output_file)
-        except ValueError as e:
-            err = ExportSubprocessError(
-                notebook_path=self.path,
-                command=cmd,
-                return_code=-1,
-                stderr=f"Invalid output path: {e}",
-            )
-            logger.error(str(err))
-            return NotebookExportResult.failed(self.path, err)
-
-        try:
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-        except OSError as e:  # pragma: no cover
-            err = ExportSubprocessError(
-                notebook_path=self.path,
-                command=cmd,
-                return_code=-1,
-                stderr=f"Failed to create output directory: {e}",
-            )
-            logger.error(str(err))
-            return NotebookExportResult.failed(self.path, err)
-
-        # Add the notebook path and output file to command
         cmd.extend([str(self.path), "-o", str(output_file)])
+        return cmd
 
+    def _run_export_subprocess(
+        self, cmd: list[str], output_file: Path, timeout: int, audit_logger: AuditLogger
+    ) -> NotebookExportResult:
+        """Run the export subprocess and handle results.
+
+        Args:
+            cmd: Command list to execute.
+            output_file: Path where the exported HTML file will be saved.
+            timeout: Maximum time in seconds for the export process.
+            audit_logger: Audit logger for security logging.
+
+        Returns:
+            NotebookExportResult indicating success or failure.
+
+        """
         try:
             # Run marimo export command with timeout
             logger.debug(f"Running command: {cmd}")
@@ -309,16 +387,25 @@ class Notebook:
                 nb_logger.warning(f"stderr:\n{result.stderr.strip()}")
 
             if result.returncode != 0:
+                sanitized_stderr = sanitize_error_message(result.stderr)
                 err = ExportSubprocessError(
                     notebook_path=self.path,
                     command=cmd,
                     return_code=result.returncode,
                     stdout=result.stdout,
-                    stderr=result.stderr,
+                    stderr=sanitized_stderr,
                 )
                 nb_logger.error(str(err))
+                audit_logger.log_export(self.path, None, False, sanitized_stderr)
                 return NotebookExportResult.failed(self.path, err)
 
+            # Set secure permissions on output file
+            try:
+                set_secure_file_permissions(output_file, mode=0o644)
+            except ValueError as e:  # pragma: no cover
+                logger.warning(f"Could not set secure permissions on {output_file}: {e}")
+
+            audit_logger.log_export(self.path, output_file, True)
             return NotebookExportResult.succeeded(self.path, output_file)
 
         except subprocess.TimeoutExpired:
@@ -329,20 +416,25 @@ class Notebook:
                 stderr=f"Export timed out after {timeout} seconds",
             )
             logger.error(str(err))
+            audit_logger.log_export(self.path, None, False, f"timeout after {timeout}s")
             return NotebookExportResult.failed(self.path, err)
         except FileNotFoundError as e:
             # Executable not found in PATH
-            err = ExportExecutableNotFoundError(executable)
-            logger.error(f"{err}: {e}")
-            return NotebookExportResult.failed(self.path, err)
+            exec_err = ExportExecutableNotFoundError(cmd[0])
+            sanitized_error = sanitize_error_message(str(e))
+            logger.error(f"{exec_err}: {sanitized_error}")
+            audit_logger.log_export(self.path, None, False, sanitized_error)
+            return NotebookExportResult.failed(self.path, exec_err)
         except subprocess.SubprocessError as e:
+            sanitized_error = sanitize_error_message(str(e))
             err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
-                stderr=str(e),
+                stderr=sanitized_error,
             )
             logger.error(str(err))
+            audit_logger.log_export(self.path, None, False, sanitized_error)
             return NotebookExportResult.failed(self.path, err)
 
     @property

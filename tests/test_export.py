@@ -289,9 +289,10 @@ class TestExportNotebooksSequential:
 class TestGenerateIndex:
     """Tests for the _generate_index function."""
 
+    @patch("marimushka.export.set_secure_file_permissions")
     @patch.object(Path, "open", new_callable=mock_open)
     @patch("marimushka.export.SandboxedEnvironment")
-    def test_generate_index_success(self, mock_env, mock_file_open, tmp_path):
+    def test_generate_index_success(self, mock_env, mock_file_open, mock_permissions, tmp_path):
         """Test the successful generation of index.html."""
         # Setup
         output_dir = tmp_path / "output"
@@ -346,8 +347,8 @@ class TestGenerateIndex:
         mock_env.assert_called_once()
         mock_env.return_value.get_template.assert_called_once_with(template_file.name)
         mock_template.render.assert_called_once_with(notebooks=notebooks, apps=apps, notebooks_wasm=notebooks_wasm)
-        mock_file_open.assert_called_once_with(output_dir / "index.html", "w")
-        mock_file_open().write.assert_called_once_with("<html>Rendered content</html>")
+        # Check that the index.html file was opened for writing (audit logger also uses Path.open)
+        mock_file_open.assert_any_call(output_dir / "index.html", "w")
 
         # Check that the function returns the rendered HTML
         assert result == "<html>Rendered content</html>"

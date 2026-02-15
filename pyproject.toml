@@ -139,3 +139,6 @@ altair = "altair"
 pydantic-ai = "pydantic_ai"
 python-pptx = "pptx"
 matplotlib = "matplotlib"
+
+[tool.deptry.per_rule_ignores]
+DEP001 = ["tomli"]  # tomli is a fallback for Python < 3.11; tomllib is built-in for 3.11+

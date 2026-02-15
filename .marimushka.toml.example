@@ -1,0 +1,44 @@
+# Marimushka Configuration File
+# This file contains configuration options for marimushka export.
+
+[marimushka]
+# Output directory for exported files
+output = "_site"
+
+# Path to custom Jinja2 template (optional)
+# If not specified, uses the built-in template
+# template = "templates/custom.html.j2"
+
+# Directory containing static HTML notebooks
+notebooks = "notebooks"
+
+# Directory containing app notebooks (run mode, code hidden)
+apps = "apps"
+
+# Directory containing interactive WebAssembly notebooks (edit mode)
+notebooks_wasm = "notebooks_wasm"
+
+# Whether to run exports in sandbox mode (recommended for security)
+sandbox = true
+
+# Whether to export notebooks in parallel
+parallel = true
+
+# Maximum number of parallel workers (1-16)
+max_workers = 4
+
+# Timeout in seconds for each notebook export
+timeout = 300
+
+[marimushka.security]
+# Enable audit logging of security-relevant events
+audit_enabled = true
+
+# Path to audit log file (optional, defaults to stderr only)
+# audit_log = ".marimushka-audit.log"
+
+# Maximum file size in MB for templates and notebooks
+max_file_size_mb = 10
+
+# Default file permissions for created files (octal)
+file_permissions = "0o644"
