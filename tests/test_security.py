@@ -1,7 +1,5 @@
 """Tests for the security module."""
 
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -41,10 +39,10 @@ class TestValidatePathTraversal:
         with pytest.raises(ValueError, match="Path traversal detected"):
             validate_path_traversal(escape_path, base_dir)
 
-    def test_validate_path_traversal_no_base_dir(self):
+    def test_validate_path_traversal_no_base_dir(self, tmp_path):
         """Test validation without base directory constraint."""
         # Setup
-        test_path = Path("/tmp/test.py")
+        test_path = tmp_path / "test.py"
 
         # Execute
         result = validate_path_traversal(test_path)
@@ -172,7 +170,7 @@ class TestValidateFilePath:
         test_file.write_text("test")
 
         # Execute & Assert
-        with pytest.raises(ValueError, match="File extension .txt not allowed"):
+        with pytest.raises(ValueError, match=r"File extension \.txt not allowed"):
             validate_file_path(test_file, allowed_extensions=[".py", ".html"])
 
     def test_validate_file_path_no_extension_check(self, tmp_path):
@@ -295,7 +293,7 @@ class TestValidateMaxWorkers:
     def test_validate_max_workers_invalid_constraints(self):
         """Test validation fails for invalid constraints."""
         # Execute & Assert
-        with pytest.raises(ValueError, match="max_allowed .* must be >= min_workers"):
+        with pytest.raises(ValueError, match=r"max_allowed .* must be >= min_workers"):
             validate_max_workers(4, min_workers=10, max_allowed=5)
 
         with pytest.raises(ValueError, match="min_workers must be at least 1"):
