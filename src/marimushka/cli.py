@@ -13,14 +13,50 @@ from rich import print as rich_print
 
 from . import __version__
 
+# Global state for debug mode
+_debug_mode = False
+
 # Configure logger
 logger.configure(extra={"subprocess": ""})
 logger.remove()
-logger.add(
-    sys.stderr,
-    format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:"
-    "<cyan>{function}</cyan>:<cyan>{line}</cyan> | <magenta>{extra[subprocess]}</magenta><level>{message}</level>",
-)
+
+
+def configure_logging(debug: bool = False) -> None:
+    """Configure logging based on debug mode.
+    
+    Args:
+        debug: Whether to enable debug mode.
+    
+    """
+    global _debug_mode
+    _debug_mode = debug
+    
+    # Remove existing handlers
+    logger.remove()
+    
+    if debug:
+        # Debug mode: show all logs including DEBUG level
+        logger.add(
+            sys.stderr,
+            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+            "<magenta>{extra[subprocess]}</magenta><level>{message}</level>",
+            level="DEBUG",
+        )
+        logger.debug("Debug mode enabled - showing all log messages")
+    else:
+        # Normal mode: show INFO and above
+        logger.add(
+            sys.stderr,
+            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+            "<magenta>{extra[subprocess]}</magenta><level>{message}</level>",
+            level="INFO",
+        )
+
+
+# Initial configuration with default settings
+configure_logging(debug=False)
 
 # Maximum number of changed files to display in watch mode
 _MAX_CHANGED_FILES_TO_DISPLAY = 5
@@ -69,6 +105,7 @@ def export_command(
     parallel: bool = typer.Option(True, "--parallel/--no-parallel", help="Whether to export notebooks in parallel"),
     max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers (1-16)"),
     timeout: int = typer.Option(300, "--timeout", help="Timeout in seconds for each notebook export"),
+    debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode with verbose logging"),
 ) -> None:
     """Export marimo notebooks and build an HTML index page linking to them.
 
@@ -92,8 +129,14 @@ def export_command(
 
         # Use custom template
         $ marimushka export -t my_template.html.j2
+        
+        # Enable debug mode for troubleshooting
+        $ marimushka export --debug
 
     """
+    # Configure logging based on debug flag
+    configure_logging(debug=debug)
+    
     from .export import main
 
     main(
@@ -129,6 +172,7 @@ def watch_command(
     parallel: bool = typer.Option(True, "--parallel/--no-parallel", help="Whether to export notebooks in parallel"),
     max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers (1-16)"),
     timeout: int = typer.Option(300, "--timeout", help="Timeout in seconds for each notebook export"),
+    debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode with verbose logging"),
 ) -> None:
     """Watch for changes and automatically re-export notebooks.
 
@@ -136,7 +180,20 @@ def watch_command(
     automatically re-exporting when files are modified.
 
     Requires the 'watchfiles' package: uv add watchfiles
+    
+    Example usage:
+        # Basic watch mode
+        $ marimushka watch
+
+        # Watch with custom directories
+        $ marimushka watch -n my_notebooks -a my_apps
+        
+        # Watch with debug logging
+        $ marimushka watch --debug
     """
+    # Configure logging based on debug flag
+    configure_logging(debug=debug)
+    
     try:
         from watchfiles import watch as watchfiles_watch
     except ImportError:  # pragma: no cover
