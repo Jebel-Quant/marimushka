@@ -56,6 +56,7 @@ from .exceptions import (
     NotebookInvalidError,
     NotebookNotFoundError,
 )
+from .security import validate_bin_path, validate_path_traversal
 
 
 class Kind(Enum):
@@ -206,7 +207,13 @@ class Notebook:
         if not self.path.suffix == ".py":
             raise NotebookInvalidError(self.path, reason="not a Python file")
 
-    def export(self, output_dir: Path, sandbox: bool = True, bin_path: Path | None = None) -> NotebookExportResult:
+    def export(
+        self,
+        output_dir: Path,
+        sandbox: bool = True,
+        bin_path: Path | None = None,
+        timeout: int = 300,
+    ) -> NotebookExportResult:
         """Export the notebook to HTML/WebAssembly format.
 
         This method exports the marimo notebook to HTML/WebAssembly format.
@@ -218,6 +225,7 @@ class Notebook:
             output_dir: Directory where the exported HTML file will be saved.
             sandbox: Whether to run the notebook in a sandbox. Defaults to True.
             bin_path: The directory where the executable is located. Defaults to None.
+            timeout: Maximum time in seconds for the export process. Defaults to 300.
 
         Returns:
             NotebookExportResult indicating success or failure with details.
@@ -227,16 +235,24 @@ class Notebook:
         exe: str | None = None
 
         if bin_path:
+            # Validate bin_path for security
+            try:
+                validated_bin_path = validate_bin_path(bin_path)
+            except ValueError as e:
+                err: ExportError = ExportExecutableNotFoundError(executable, bin_path)
+                logger.error(f"Invalid bin_path: {e}")
+                return NotebookExportResult.failed(self.path, err)
+
             # Construct the full executable path
             # Use shutil.which to find it with platform-specific extensions (like .exe on Windows)
-            exe = shutil.which(executable, path=str(bin_path))
+            exe = shutil.which(executable, path=str(validated_bin_path))
             if not exe:
                 # Fallback: try constructing the path directly
-                exe_path = bin_path / executable
+                exe_path = validated_bin_path / executable
                 if exe_path.is_file() and os.access(exe_path, os.X_OK):
                     exe = str(exe_path)
                 else:
-                    err: ExportError = ExportExecutableNotFoundError(executable, bin_path)
+                    err = ExportExecutableNotFoundError(executable, validated_bin_path)
                     logger.error(str(err))
                     return NotebookExportResult.failed(self.path, err)
         else:
@@ -250,6 +266,19 @@ class Notebook:
 
         # Create the full output path and ensure the directory exists
         output_file: Path = output_dir / f"{self.path.stem}.html"
+
+        # Validate output path to prevent path traversal
+        try:
+            validate_path_traversal(output_file)
+        except ValueError as e:
+            err = ExportSubprocessError(
+                notebook_path=self.path,
+                command=cmd,
+                return_code=-1,
+                stderr=f"Invalid output path: {e}",
+            )
+            logger.error(str(err))
+            return NotebookExportResult.failed(self.path, err)
 
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -267,9 +296,11 @@ class Notebook:
         cmd.extend([str(self.path), "-o", str(output_file)])
 
         try:
-            # Run marimo export command
+            # Run marimo export command with timeout
             logger.debug(f"Running command: {cmd}")
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=False, timeout=timeout
+            )  # nosec B603
 
             nb_logger = logger.bind(subprocess=f"[{self.path.name}] ")
 
@@ -292,6 +323,15 @@ class Notebook:
 
             return NotebookExportResult.succeeded(self.path, output_file)
 
+        except subprocess.TimeoutExpired as e:
+            err = ExportSubprocessError(
+                notebook_path=self.path,
+                command=cmd,
+                return_code=-1,
+                stderr=f"Export timed out after {timeout} seconds",
+            )
+            logger.error(str(err))
+            return NotebookExportResult.failed(self.path, err)
         except FileNotFoundError as e:
             # Executable not found in PATH
             err = ExportExecutableNotFoundError(executable)

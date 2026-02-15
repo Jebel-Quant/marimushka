@@ -167,7 +167,7 @@ class TestExportNotebook:
         # Assert
         assert result is mock_result
         assert result.success is True
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir, sandbox=True, bin_path=None)
+        mock_notebook.export.assert_called_once_with(output_dir=output_dir, sandbox=True, bin_path=None, timeout=300)
 
     def test_export_notebook_failure(self):
         """Test notebook export failure."""
@@ -273,7 +273,7 @@ class TestExportNotebooksSequential:
         assert result.all_succeeded is True
         # Verify all notebooks were exported
         for nb in mock_notebooks:
-            nb.export.assert_called_once_with(output_dir=Path("/output"), sandbox=True, bin_path=None)
+            nb.export.assert_called_once_with(output_dir=Path("/output"), sandbox=True, bin_path=None, timeout=300)
 
     def test_export_notebooks_sequential_empty_list(self):
         """Test sequential export with empty list."""
@@ -510,6 +510,7 @@ class TestMain:
             bin_path=None,
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
     @patch("marimushka.export._validate_template")
@@ -603,6 +604,7 @@ class TestMainTyper:
             bin_path="/custom/bin",
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
         # Assert - verify that main was called with the same values
@@ -616,6 +618,7 @@ class TestMainTyper:
             bin_path="/custom/bin",
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
     @patch("marimushka.export.main")
@@ -634,6 +637,7 @@ class TestMainTyper:
             bin_path="/bin",
             parallel=False,
             max_workers=2,
+            timeout=300,
         )
 
         # Assert - verify that main was called with the same values
@@ -647,6 +651,7 @@ class TestMainTyper:
             bin_path="/bin",
             parallel=False,
             max_workers=2,
+            timeout=300,
         )
 
 
