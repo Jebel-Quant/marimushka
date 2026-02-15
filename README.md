@@ -501,26 +501,26 @@ Marimushka has comprehensive documentation to help you get the most out of it:
 
 - **[README.md](README.md)** - This file. Getting started guide and feature overview
 - **[CHANGELOG.md](CHANGELOG.md)** - Detailed version history with migration notes
-- **[MIGRATION.md](MIGRATION.md)** - Version upgrade guides with code examples
+- **[MIGRATION.md](docs/MIGRATION.md)** - Version upgrade guides with code examples
 - **[API.md](API.md)** - Complete Python API reference for programmatic usage
 
 ### User Guides
 
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
   - Installation problems
   - Export failures
   - Template errors
   - Performance issues
   - GitHub Action troubleshooting
   
-- **[RECIPES.md](RECIPES.md)** - Real-world usage patterns and examples
+- **[RECIPES.md](docs/RECIPES.md)** - Real-world usage patterns and examples
   - Basic workflows
   - CI/CD integration (GitHub, GitLab, CircleCI)
   - Custom templates
   - Advanced patterns
   - Deployment strategies
   
-- **[FAQ.md](FAQ.md)** - Frequently asked questions
+- **[FAQ.md](docs/FAQ.md)** - Frequently asked questions
   - Quick answers to 50+ common questions
   - Organized by topic
   - Search-friendly format
@@ -541,10 +541,10 @@ Marimushka has comprehensive documentation to help you get the most out of it:
 | I want to... | See... |
 |-------------|--------|
 | Get started quickly | [README.md - Installation](#-installation) |
-| Fix an error | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
-| See real examples | [RECIPES.md](RECIPES.md) |
-| Find a quick answer | [FAQ.md](FAQ.md) |
-| Upgrade versions | [MIGRATION.md](MIGRATION.md) |
+| Fix an error | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| See real examples | [RECIPES.md](docs/RECIPES.md) |
+| Find a quick answer | [FAQ.md](docs/FAQ.md) |
+| Upgrade versions | [MIGRATION.md](docs/MIGRATION.md) |
 | Use the Python API | [API.md](API.md) |
 | Deploy to GitHub Pages | [README.md - GitHub Action](#github-action) |
 | Customize templates | [templates/README.md](templates/README.md) |

@@ -613,8 +613,8 @@ You can configure the number of parallel workers using the max-workers flag.
 ### Questions?
 
 - 💬 [GitHub Discussions](https://github.com/jebel-quant/marimushka/discussions) - Ask questions, discuss ideas
-- 📖 [CODE_TOUR.md](CODE_TOUR.md) - Understand the codebase
-- 📚 [DESIGN.md](DESIGN.md) - Learn about design decisions
+- 📖 [CODE_TOUR.md](docs/CODE_TOUR.md) - Understand the codebase
+- 📚 [DESIGN.md](docs/DESIGN.md) - Learn about design decisions
 
 ### Found a Bug?
 

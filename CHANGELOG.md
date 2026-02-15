@@ -124,7 +124,7 @@ No breaking changes. All existing commands work as-is. New features are opt-in.
    uvx marimushka export --max-workers 8  # More workers for faster export
    ```
 
-See: [MIGRATION.md](MIGRATION.md) for detailed upgrade instructions.
+See: [MIGRATION.md](docs/MIGRATION.md) for detailed upgrade instructions.
 
 ---
 
