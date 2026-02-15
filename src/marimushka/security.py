@@ -35,20 +35,20 @@ def validate_path_traversal(path: Path, base_dir: Path | None = None) -> Path:
     try:
         resolved_path = path.resolve(strict=False)
     except (OSError, RuntimeError) as e:
-        raise ValueError(f"Invalid path: {path}") from e
+        raise ValueError(f"Invalid path: {path}") from e  # noqa: TRY003
 
     # If a base directory is provided, ensure the path doesn't escape it
     if base_dir is not None:
         try:
             base_resolved = base_dir.resolve(strict=False)
         except (OSError, RuntimeError) as e:
-            raise ValueError(f"Invalid base directory: {base_dir}") from e
+            raise ValueError(f"Invalid base directory: {base_dir}") from e  # noqa: TRY003
 
         # Check if the resolved path is within the base directory
         try:
             resolved_path.relative_to(base_resolved)
         except ValueError as e:
-            raise ValueError(f"Path traversal detected: {path} escapes base directory {base_dir}") from e
+            raise ValueError(f"Path traversal detected: {path} escapes base directory {base_dir}") from e  # noqa: TRY003
 
     return resolved_path
 
@@ -67,7 +67,7 @@ def _check_whitelist(resolved_path: Path, whitelist: list[Path], original_path: 
     """
     resolved_whitelist = [p.resolve(strict=False) for p in whitelist]
     if resolved_path not in resolved_whitelist:
-        raise ValueError(f"Binary path not in whitelist: {original_path}")
+        raise ValueError(f"Binary path not in whitelist: {original_path}")  # noqa: TRY003
 
 
 def validate_bin_path(bin_path: Path, whitelist: list[Path] | None = None) -> Path:
@@ -89,10 +89,10 @@ def validate_bin_path(bin_path: Path, whitelist: list[Path] | None = None) -> Pa
 
     """
     if not bin_path.exists():
-        raise ValueError(f"Binary path does not exist: {bin_path}")
+        raise ValueError(f"Binary path does not exist: {bin_path}")  # noqa: TRY003
 
     if not bin_path.is_dir():
-        raise ValueError(f"Binary path is not a directory: {bin_path}")
+        raise ValueError(f"Binary path is not a directory: {bin_path}")  # noqa: TRY003
 
     # Resolve to absolute path to prevent path traversal
     resolved_bin_path = bin_path.resolve(strict=True)
@@ -124,17 +124,16 @@ def validate_file_path(file_path: Path, allowed_extensions: list[str] | None = N
 
     """
     if not file_path.exists():
-        raise ValueError(f"File does not exist: {file_path}")
+        raise ValueError(f"File does not exist: {file_path}")  # noqa: TRY003
 
     if not file_path.is_file():
-        raise ValueError(f"Path is not a file: {file_path}")
+        raise ValueError(f"Path is not a file: {file_path}")  # noqa: TRY003
 
     # Check extension if whitelist provided
     if allowed_extensions is not None:
         if file_path.suffix not in allowed_extensions:
-            raise ValueError(
-                f"File extension {file_path.suffix} not allowed. Allowed extensions: {', '.join(allowed_extensions)}"
-            )
+            msg = f"File extension {file_path.suffix} not allowed. Allowed extensions: {', '.join(allowed_extensions)}"
+            raise ValueError(msg)
 
     return file_path
 
@@ -204,13 +203,13 @@ def validate_max_workers(max_workers: int, min_workers: int = 1, max_allowed: in
 
     """
     if not isinstance(max_workers, int):
-        raise ValueError(f"max_workers must be an integer, got {type(max_workers).__name__}")
+        raise TypeError(f"max_workers must be an integer, got {type(max_workers).__name__}")  # noqa: TRY003
 
     if min_workers < 1:
-        raise ValueError(f"min_workers must be at least 1, got {min_workers}")
+        raise ValueError(f"min_workers must be at least 1, got {min_workers}")  # noqa: TRY003
 
     if max_allowed < min_workers:
-        raise ValueError(f"max_allowed ({max_allowed}) must be >= min_workers ({min_workers})")
+        raise ValueError(f"max_allowed ({max_allowed}) must be >= min_workers ({min_workers})")  # noqa: TRY003
 
     # Bound the value using max/min for cleaner logic
     return max(min_workers, min(max_workers, max_allowed))

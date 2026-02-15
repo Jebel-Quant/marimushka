@@ -1,6 +1,5 @@
 """Tests for the security module."""
 
-
 import pytest
 
 from marimushka.security import (
@@ -279,7 +278,7 @@ class TestValidateMaxWorkers:
     def test_validate_max_workers_not_integer(self):
         """Test validation fails for non-integer."""
         # Execute & Assert
-        with pytest.raises(ValueError, match="max_workers must be an integer"):
+        with pytest.raises(TypeError, match="max_workers must be an integer"):
             validate_max_workers(4.5)
 
     def test_validate_max_workers_custom_bounds(self):
