@@ -85,9 +85,7 @@ def export_notebooks_parallel(
         return batch_result
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(export_notebook, nb, output_dir, sandbox, bin_path, timeout): nb for nb in notebooks
-        }
+        futures = {executor.submit(export_notebook, nb, output_dir, sandbox, bin_path, timeout): nb for nb in notebooks}
 
         for future in as_completed(futures):
             result = future.result()
@@ -197,9 +195,7 @@ def export_all_notebooks(
                     nb_list, out_dir, sandbox, bin_path, max_workers, progress, task, timeout
                 )
             else:
-                batch_result = export_notebooks_sequential(
-                    nb_list, out_dir, sandbox, bin_path, progress, task, timeout
-                )
+                batch_result = export_notebooks_sequential(nb_list, out_dir, sandbox, bin_path, progress, task, timeout)
 
             for result in batch_result.results:
                 combined_batch_result.add(result)
