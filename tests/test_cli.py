@@ -3,10 +3,10 @@
 import subprocess
 from unittest.mock import patch
 
-from marimushka.export import cli, version
+from marimushka.cli import cli, version_command
 
 
-@patch("marimushka.export.app")
+@patch("marimushka.cli.app")
 def test_cli(mock_app):
     """Test the cli function."""
     # Execute
@@ -16,11 +16,11 @@ def test_cli(mock_app):
     mock_app.assert_called_once()
 
 
-@patch("marimushka.export.rich_print")
+@patch("marimushka.cli.rich_print")
 def test_version(mock_rich_print):
     """Test the version command."""
     # Execute
-    version()
+    version_command()
 
     # Assert
     mock_rich_print.assert_called_once()
