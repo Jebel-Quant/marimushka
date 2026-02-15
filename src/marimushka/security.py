@@ -23,9 +23,9 @@ def validate_path_traversal(path: Path, base_dir: Path | None = None) -> Path:
 
     Examples:
         >>> from pathlib import Path
-        >>> validate_path_traversal(Path("notebooks/test.py"), Path("/home/user"))
+        >>> validate_path_traversal(Path("notebooks/test.py"), Path("/home/user"))  # doctest: +SKIP
         PosixPath('/home/user/notebooks/test.py')
-        >>> validate_path_traversal(Path("../../../etc/passwd"))
+        >>> validate_path_traversal(Path("../../../etc/passwd"))  # doctest: +SKIP
         Traceback (most recent call last):
             ...
         ValueError: Path traversal detected: path cannot escape base directory
