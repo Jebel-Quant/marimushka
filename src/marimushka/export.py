@@ -61,6 +61,7 @@ from pathlib import Path
 
 import jinja2
 import typer
+from jinja2.sandbox import SandboxedEnvironment
 from loguru import logger
 from rich import print as rich_print
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TaskProgressColumn, TextColumn
@@ -75,6 +76,7 @@ from .exceptions import (
     TemplateRenderError,
 )
 from .notebook import Kind, Notebook, folder2notebooks
+from .security import validate_max_workers, validate_path_traversal
 
 # Maximum number of changed files to display in watch mode
 _MAX_CHANGED_FILES_TO_DISPLAY = 5
@@ -102,6 +104,12 @@ def _validate_template(template_path: Path) -> None:
         TemplateInvalidError: If the template path is not a file.
 
     """
+    # Validate path traversal
+    try:
+        validate_path_traversal(template_path)
+    except ValueError as e:
+        raise TemplateInvalidError(template_path, reason=f"path traversal detected: {e}") from e
+
     if not template_path.exists():
         raise TemplateNotFoundError(template_path)
     if not template_path.is_file():
@@ -115,6 +123,7 @@ def _export_notebook(
     output_dir: Path,
     sandbox: bool,
     bin_path: Path | None,
+    timeout: int = 300,
 ) -> NotebookExportResult:
     """Export a single notebook and return the result.
 
@@ -123,12 +132,13 @@ def _export_notebook(
         output_dir: Output directory for the exported HTML.
         sandbox: Whether to use sandbox mode.
         bin_path: Custom path to uvx executable.
+        timeout: Maximum time in seconds for the export process. Defaults to 300.
 
     Returns:
         NotebookExportResult with success status and details.
 
     """
-    return notebook.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
+    return notebook.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path, timeout=timeout)
 
 
 def _export_notebooks_parallel(
@@ -139,6 +149,7 @@ def _export_notebooks_parallel(
     max_workers: int = 4,
     progress: Progress | None = None,
     task_id: TaskID | None = None,
+    timeout: int = 300,
 ) -> BatchExportResult:
     """Export notebooks in parallel using a thread pool.
 
@@ -150,18 +161,24 @@ def _export_notebooks_parallel(
         max_workers: Maximum number of parallel workers. Defaults to 4.
         progress: Optional Rich Progress instance for progress tracking.
         task_id: Optional task ID for progress updates.
+        timeout: Maximum time in seconds for each export. Defaults to 300.
 
     Returns:
         BatchExportResult containing individual results and summary statistics.
 
     """
+    # Validate and bound max_workers for security
+    max_workers = validate_max_workers(max_workers)
+
     batch_result = BatchExportResult()
 
     if not notebooks:
         return batch_result
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(_export_notebook, nb, output_dir, sandbox, bin_path): nb for nb in notebooks}
+        futures = {
+            executor.submit(_export_notebook, nb, output_dir, sandbox, bin_path, timeout): nb for nb in notebooks
+        }
 
         for future in as_completed(futures):
             result = future.result()
@@ -184,6 +201,7 @@ def _export_notebooks_sequential(
     bin_path: Path | None,
     progress: Progress | None = None,
     task_id: TaskID | None = None,
+    timeout: int = 300,
 ) -> BatchExportResult:
     """Export notebooks sequentially.
 
@@ -194,6 +212,7 @@ def _export_notebooks_sequential(
         bin_path: Custom path to uvx executable.
         progress: Optional Rich Progress instance for progress tracking.
         task_id: Optional task ID for progress updates.
+        timeout: Maximum time in seconds for each export. Defaults to 300.
 
     Returns:
         BatchExportResult containing individual results and summary statistics.
@@ -202,7 +221,7 @@ def _export_notebooks_sequential(
     batch_result = BatchExportResult()
 
     for nb in notebooks:
-        result = nb.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path)
+        result = nb.export(output_dir=output_dir, sandbox=sandbox, bin_path=bin_path, timeout=timeout)
         batch_result.add(result)
         if progress and task_id is not None:
             progress.advance(task_id)
@@ -219,6 +238,7 @@ def _export_all_notebooks(
     bin_path: Path | None,
     parallel: bool,
     max_workers: int,
+    timeout: int = 300,
 ) -> BatchExportResult:
     """Export all notebooks with progress tracking.
 
@@ -231,6 +251,7 @@ def _export_all_notebooks(
         bin_path: Custom path to uvx executable.
         parallel: Whether to export notebooks in parallel.
         max_workers: Maximum number of parallel workers.
+        timeout: Maximum time in seconds for each export. Defaults to 300.
 
     Returns:
         BatchExportResult containing all export results.
@@ -264,10 +285,12 @@ def _export_all_notebooks(
 
             if parallel:
                 batch_result = _export_notebooks_parallel(
-                    nb_list, out_dir, sandbox, bin_path, max_workers, progress, task
+                    nb_list, out_dir, sandbox, bin_path, max_workers, progress, task, timeout
                 )
             else:
-                batch_result = _export_notebooks_sequential(nb_list, out_dir, sandbox, bin_path, progress, task)
+                batch_result = _export_notebooks_sequential(
+                    nb_list, out_dir, sandbox, bin_path, progress, task, timeout
+                )
 
             for result in batch_result.results:
                 combined_batch_result.add(result)
@@ -308,7 +331,8 @@ def _render_template(
     template_name = template_file.name
 
     try:
-        env = jinja2.Environment(
+        # Use SandboxedEnvironment for security
+        env = SandboxedEnvironment(
             loader=jinja2.FileSystemLoader(template_dir), autoescape=jinja2.select_autoescape(["html", "xml"])
         )
         template = env.get_template(template_name)
@@ -373,6 +397,7 @@ def _generate_index(
     bin_path: Path | None = None,
     parallel: bool = True,
     max_workers: int = 4,
+    timeout: int = 300,
 ) -> str:
     """Generate an index.html file that lists all the notebooks.
 
@@ -390,6 +415,7 @@ def _generate_index(
         bin_path: The directory where the executable is located. Defaults to None.
         parallel: Whether to export notebooks in parallel. Defaults to True.
         max_workers: Maximum number of parallel workers. Defaults to 4.
+        timeout: Maximum time in seconds for each export. Defaults to 300.
 
     Returns:
         The rendered HTML content as a string.
@@ -413,6 +439,7 @@ def _generate_index(
         bin_path=bin_path,
         parallel=parallel,
         max_workers=max_workers,
+        timeout=timeout,
     )
 
     # Ensure the output directory exists
@@ -435,6 +462,7 @@ def _main_impl(
     bin_path: str | Path | None = None,
     parallel: bool = True,
     max_workers: int = 4,
+    timeout: int = 300,
 ) -> str:
     """Execute the main export workflow with logging and validation.
 
@@ -467,6 +495,7 @@ def _main_impl(
             Defaults to True for performance.
         max_workers: Maximum number of parallel worker threads. Only used
             when parallel=True. Defaults to 4.
+        timeout: Maximum time in seconds for each export. Defaults to 300.
 
     Returns:
         The rendered HTML content of the index page as a string. Returns
@@ -501,6 +530,7 @@ def _main_impl(
     logger.info(f"Sandbox: {sandbox}")
     logger.info(f"Parallel: {parallel} (max_workers={max_workers})")
     logger.info(f"Bin path: {bin_path}")
+    logger.info(f"Timeout: {timeout}s")
 
     # Convert bin_path to Path if provided
     bin_path_obj: Path | None = Path(bin_path) if bin_path else None
@@ -528,6 +558,7 @@ def _main_impl(
         bin_path=bin_path_obj,
         parallel=parallel,
         max_workers=max_workers,
+        timeout=timeout,
     )
 
 
@@ -541,6 +572,7 @@ def main(
     bin_path: str | Path | None = None,
     parallel: bool = True,
     max_workers: int = 4,
+    timeout: int = 300,
 ) -> str:
     """Export marimo notebooks and generate an index page.
 
@@ -554,6 +586,7 @@ def main(
         bin_path: Custom path to uvx executable. Defaults to None.
         parallel: Whether to export notebooks in parallel. Defaults to True.
         max_workers: Maximum number of parallel workers. Defaults to 4.
+        timeout: Maximum time in seconds for each export. Defaults to 300.
 
     Returns:
         Rendered HTML content as string, empty if no notebooks found.
@@ -576,6 +609,7 @@ def main(
         bin_path=bin_path,
         parallel=parallel,
         max_workers=max_workers,
+        timeout=timeout,
     )
 
 
@@ -596,7 +630,8 @@ def _main_typer(
     sandbox: bool = typer.Option(True, "--sandbox/--no-sandbox", help="Whether to run the notebook in a sandbox"),
     bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
     parallel: bool = typer.Option(True, "--parallel/--no-parallel", help="Whether to export notebooks in parallel"),
-    max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers"),
+    max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers (1-16)"),
+    timeout: int = typer.Option(300, "--timeout", help="Timeout in seconds for each notebook export"),
 ) -> None:
     """Export marimo notebooks and build an HTML index page linking to them.
 
@@ -632,6 +667,7 @@ def _main_typer(
         bin_path=bin_path,
         parallel=parallel,
         max_workers=max_workers,
+        timeout=timeout,
     )
 
 
@@ -652,7 +688,8 @@ def watch(
     sandbox: bool = typer.Option(True, "--sandbox/--no-sandbox", help="Whether to run the notebook in a sandbox"),
     bin_path: str | None = typer.Option(None, "--bin-path", "-b", help="The directory where the executable is located"),
     parallel: bool = typer.Option(True, "--parallel/--no-parallel", help="Whether to export notebooks in parallel"),
-    max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers"),
+    max_workers: int = typer.Option(4, "--max-workers", "-w", help="Maximum number of parallel workers (1-16)"),
+    timeout: int = typer.Option(300, "--timeout", help="Timeout in seconds for each notebook export"),
 ) -> None:
     """Watch for changes and automatically re-export notebooks.
 
@@ -701,6 +738,7 @@ def watch(
         bin_path=bin_path,
         parallel=parallel,
         max_workers=max_workers,
+        timeout=timeout,
     )
     rich_print("[bold green]Initial export complete![/bold green]\n")
 
@@ -725,6 +763,7 @@ def watch(
                 bin_path=bin_path,
                 parallel=parallel,
                 max_workers=max_workers,
+                timeout=timeout,
             )
             rich_print("[bold green]Export complete![/bold green]")
     except KeyboardInterrupt:

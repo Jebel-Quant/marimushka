@@ -167,7 +167,7 @@ class TestExportNotebook:
         # Assert
         assert result is mock_result
         assert result.success is True
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir, sandbox=True, bin_path=None)
+        mock_notebook.export.assert_called_once_with(output_dir=output_dir, sandbox=True, bin_path=None, timeout=300)
 
     def test_export_notebook_failure(self):
         """Test notebook export failure."""
@@ -273,7 +273,7 @@ class TestExportNotebooksSequential:
         assert result.all_succeeded is True
         # Verify all notebooks were exported
         for nb in mock_notebooks:
-            nb.export.assert_called_once_with(output_dir=Path("/output"), sandbox=True, bin_path=None)
+            nb.export.assert_called_once_with(output_dir=Path("/output"), sandbox=True, bin_path=None, timeout=300)
 
     def test_export_notebooks_sequential_empty_list(self):
         """Test sequential export with empty list."""
@@ -290,7 +290,7 @@ class TestGenerateIndex:
     """Tests for the _generate_index function."""
 
     @patch.object(Path, "open", new_callable=mock_open)
-    @patch("jinja2.Environment")
+    @patch("marimushka.export.SandboxedEnvironment")
     def test_generate_index_success(self, mock_env, mock_file_open, tmp_path):
         """Test the successful generation of index.html."""
         # Setup
@@ -332,9 +332,15 @@ class TestGenerateIndex:
 
         # Assert
         # Check that export was called for each notebook and app
-        mock_notebook1.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
-        mock_notebook2.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
-        mock_app1.export.assert_called_once_with(output_dir=output_dir / "apps", sandbox=True, bin_path=None)
+        mock_notebook1.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
+        mock_notebook2.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
+        mock_app1.export.assert_called_once_with(
+            output_dir=output_dir / "apps", sandbox=True, bin_path=None, timeout=300
+        )
 
         # Check that the template was rendered and written to file
         mock_env.assert_called_once()
@@ -347,7 +353,7 @@ class TestGenerateIndex:
         assert result == "<html>Rendered content</html>"
 
     @patch.object(Path, "open", side_effect=OSError("File error"))
-    @patch("jinja2.Environment")
+    @patch("marimushka.export.SandboxedEnvironment")
     def test_generate_index_file_error(self, mock_env, mock_file_open, tmp_path):
         """Test handling of file error during index generation."""
         # Setup
@@ -375,9 +381,11 @@ class TestGenerateIndex:
         assert exc_info.value.index_path == output_dir / "index.html"
 
         # Check that export was still called before the error
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
+        mock_notebook.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
 
-    @patch("jinja2.Environment")
+    @patch("marimushka.export.SandboxedEnvironment")
     @patch.object(Path, "mkdir")
     def test_generate_index_template_error(self, mock_mkdir, mock_env, tmp_path):
         """Test handling of template error during index generation."""
@@ -404,7 +412,9 @@ class TestGenerateIndex:
         assert exc_info.value.template_path == template_file
 
         # Check that export was still called before the template error
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
+        mock_notebook.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
 
     def test_generate_index_no_notebooks(self, tmp_path):
         """Test index generation with no notebooks."""
@@ -510,6 +520,7 @@ class TestMain:
             bin_path=None,
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
     @patch("marimushka.export._validate_template")
@@ -603,6 +614,7 @@ class TestMainTyper:
             bin_path="/custom/bin",
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
         # Assert - verify that main was called with the same values
@@ -616,6 +628,7 @@ class TestMainTyper:
             bin_path="/custom/bin",
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
     @patch("marimushka.export.main")
@@ -634,6 +647,7 @@ class TestMainTyper:
             bin_path="/bin",
             parallel=False,
             max_workers=2,
+            timeout=300,
         )
 
         # Assert - verify that main was called with the same values
@@ -647,6 +661,7 @@ class TestMainTyper:
             bin_path="/bin",
             parallel=False,
             max_workers=2,
+            timeout=300,
         )
 
 
@@ -691,6 +706,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
         assert exc_info.value.exit_code == 1
         # Verify warning was printed
@@ -726,6 +742,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify initial export was called with correct parameters
@@ -739,6 +756,7 @@ class TestWatchCommand:
             bin_path=None,
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
     @patch("marimushka.export.main")
@@ -772,6 +790,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify the "stopped" message was printed
@@ -812,6 +831,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify main was called twice: once for initial export, once for re-export
@@ -852,6 +872,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify changed files were printed
@@ -889,6 +910,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify truncation message was printed (10 files - 5 shown = 5 more)
@@ -926,6 +948,7 @@ class TestWatchCommand:
                 bin_path=str(bin_path_dir),
                 parallel=False,
                 max_workers=8,
+                timeout=600,
             )
 
         # Verify main was called with correct custom parameters
@@ -939,6 +962,7 @@ class TestWatchCommand:
             bin_path=str(bin_path_dir),
             parallel=False,
             max_workers=8,
+            timeout=600,
         )
 
     @patch("marimushka.export.main")
@@ -974,6 +998,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify template parent directory was included

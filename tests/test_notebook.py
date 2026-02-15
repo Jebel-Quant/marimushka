@@ -294,9 +294,10 @@ class TestNotebook:
             cmd_args = mock_run.call_args[0][0]
             assert "--sandbox" not in cmd_args
 
+    @patch("marimushka.notebook.validate_bin_path")
     @patch("shutil.which")
     @patch("subprocess.run")
-    def test_export_bin_path(self, mock_run, mock_which, resource_dir, tmp_path):
+    def test_export_bin_path(self, mock_run, mock_which, mock_validate_bin_path, resource_dir, tmp_path):
         """Test export of a notebook with a bin path."""
         # Setup
         notebook_path = resource_dir / "notebooks" / "fibonacci.py"
@@ -308,6 +309,8 @@ class TestNotebook:
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         # Mock shutil.which to return the path
         mock_which.return_value = str(bin_path / executable)
+        # Mock validate_bin_path to return the bin_path
+        mock_validate_bin_path.return_value = bin_path
 
         # Create a notebook with mocked path validation
         with (
@@ -329,10 +332,13 @@ class TestNotebook:
             # shutil.which returns the full path, so we check if it ends with the executable name
             assert cmd_args[0].endswith(executable)
 
+    @patch("marimushka.notebook.validate_bin_path")
     @patch("os.access")
     @patch("shutil.which")
     @patch("subprocess.run")
-    def test_export_bin_path_fallback_success(self, mock_run, mock_which, mock_access, resource_dir, tmp_path):
+    def test_export_bin_path_fallback_success(
+        self, mock_run, mock_which, mock_access, mock_validate_bin_path, resource_dir, tmp_path
+    ):
         """Test export of a notebook with fallback when shutil.which fails."""
         # Setup
         notebook_path = resource_dir / "notebooks" / "fibonacci.py"
@@ -346,6 +352,8 @@ class TestNotebook:
         mock_access.return_value = True
         # Mock successful subprocess run
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        # Mock validate_bin_path to return the bin_path
+        mock_validate_bin_path.return_value = bin_path
 
         # Create a notebook with mocked path validation
         with (
