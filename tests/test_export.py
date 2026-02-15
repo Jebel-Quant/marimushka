@@ -706,6 +706,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
         assert exc_info.value.exit_code == 1
         # Verify warning was printed
@@ -741,6 +742,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify initial export was called with correct parameters
@@ -754,6 +756,7 @@ class TestWatchCommand:
             bin_path=None,
             parallel=True,
             max_workers=4,
+            timeout=300,
         )
 
     @patch("marimushka.export.main")
@@ -787,6 +790,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify the "stopped" message was printed
@@ -827,6 +831,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify main was called twice: once for initial export, once for re-export
@@ -867,6 +872,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify changed files were printed
@@ -904,6 +910,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify truncation message was printed (10 files - 5 shown = 5 more)
@@ -941,6 +948,7 @@ class TestWatchCommand:
                 bin_path=str(bin_path_dir),
                 parallel=False,
                 max_workers=8,
+                timeout=600,
             )
 
         # Verify main was called with correct custom parameters
@@ -954,6 +962,7 @@ class TestWatchCommand:
             bin_path=str(bin_path_dir),
             parallel=False,
             max_workers=8,
+            timeout=600,
         )
 
     @patch("marimushka.export.main")
@@ -989,6 +998,7 @@ class TestWatchCommand:
                 bin_path=None,
                 parallel=True,
                 max_workers=4,
+                timeout=300,
             )
 
         # Verify template parent directory was included
