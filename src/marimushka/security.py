@@ -53,6 +53,23 @@ def validate_path_traversal(path: Path, base_dir: Path | None = None) -> Path:
     return resolved_path
 
 
+def _check_whitelist(resolved_path: Path, whitelist: list[Path], original_path: Path) -> None:
+    """Check if a path is in the whitelist.
+
+    Args:
+        resolved_path: The resolved absolute path to check.
+        whitelist: List of allowed paths.
+        original_path: Original path for error message.
+
+    Raises:
+        ValueError: If path is not in whitelist.
+
+    """
+    resolved_whitelist = [p.resolve(strict=False) for p in whitelist]
+    if resolved_path not in resolved_whitelist:
+        raise ValueError(f"Binary path not in whitelist: {original_path}")
+
+
 def validate_bin_path(bin_path: Path, whitelist: list[Path] | None = None) -> Path:
     """Validate that bin_path is a valid directory and optionally check against whitelist.
 
@@ -82,9 +99,7 @@ def validate_bin_path(bin_path: Path, whitelist: list[Path] | None = None) -> Pa
 
     # Check against whitelist if provided
     if whitelist is not None:
-        resolved_whitelist = [p.resolve(strict=False) for p in whitelist]
-        if resolved_bin_path not in resolved_whitelist:
-            raise ValueError(f"Binary path not in whitelist: {bin_path}")
+        _check_whitelist(resolved_bin_path, whitelist, bin_path)
 
     return resolved_bin_path
 
@@ -197,10 +212,5 @@ def validate_max_workers(max_workers: int, min_workers: int = 1, max_allowed: in
     if max_allowed < min_workers:
         raise ValueError(f"max_allowed ({max_allowed}) must be >= min_workers ({min_workers})")
 
-    # Bound the value
-    if max_workers < min_workers:
-        return min_workers
-    if max_workers > max_allowed:
-        return max_allowed
-
-    return max_workers
+    # Bound the value using max/min for cleaner logic
+    return max(min_workers, min(max_workers, max_allowed))
