@@ -166,7 +166,7 @@ def sanitize_error_message(error_msg: str, sensitive_patterns: list[str] | None 
     # Pattern to match absolute paths (Unix and Windows)
     path_pattern = r"(?:(?:[A-Za-z]:)?[/\\](?:[^/\\:\n]+[/\\])+)([^/\\:\n]+)"
 
-    def redact_path(match):
+    def redact_path(match: re.Match[str]) -> str:
         filename = match.group(1)
         return f"<redacted_path>/{filename}"
 
