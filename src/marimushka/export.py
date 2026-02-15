@@ -379,11 +379,12 @@ def _render_template(
             notebooks_wasm=notebooks_wasm,
         )
         audit_logger.log_template_render(template_file, True)
-        return rendered
     except jinja2.exceptions.TemplateError as e:
         sanitized_error = sanitize_error_message(str(e))
         audit_logger.log_template_render(template_file, False, sanitized_error)
         raise TemplateRenderError(template_file, e) from e
+    else:
+        return rendered
 
 
 def _write_index_file(index_path: Path, content: str) -> None:

@@ -304,9 +304,10 @@ def safe_open_file(file_path: Path, mode: str = "r") -> int:
     # Open with restricted permissions (owner read/write only)
     try:
         fd = os.open(file_path, flags, mode=0o600)
-        return fd
     except OSError as e:
         raise ValueError(f"Cannot open file: {file_path}") from e  # noqa: TRY003
+    else:
+        return fd
 
 
 def set_secure_file_permissions(file_path: Path, mode: int = 0o644) -> None:

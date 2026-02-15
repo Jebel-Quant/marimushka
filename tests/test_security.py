@@ -324,7 +324,7 @@ class TestValidateFileSize:
         test_file.write_text("x" * 2000)
 
         # Execute & Assert
-        with pytest.raises(ValueError, match="File size .* exceeds limit"):
+        with pytest.raises(ValueError, match=r"File size .* exceeds limit"):
             validate_file_size(test_file, max_size_bytes=1000)
 
     def test_validate_file_size_not_exists(self, tmp_path):

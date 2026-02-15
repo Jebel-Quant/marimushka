@@ -98,13 +98,13 @@ class MarimushkaConfig:
 
         """
         if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+            raise FileNotFoundError(f"Config file not found: {config_path}")  # noqa: TRY003
 
         try:
             with config_path.open("rb") as f:
                 config_data = tomllib.load(f)
         except Exception as e:
-            raise ValueError(f"Failed to parse config file: {e}") from e
+            raise ValueError(f"Failed to parse config file: {e}") from e  # noqa: TRY003
 
         # Extract marimushka section
         marimushka_config = config_data.get("marimushka", {})
