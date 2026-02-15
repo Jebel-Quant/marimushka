@@ -4,7 +4,6 @@ This module provides security-related utilities including path validation,
 path traversal protection, and other security measures.
 """
 
-import os
 from pathlib import Path
 
 
@@ -119,8 +118,7 @@ def validate_file_path(file_path: Path, allowed_extensions: list[str] | None = N
     if allowed_extensions is not None:
         if file_path.suffix not in allowed_extensions:
             raise ValueError(
-                f"File extension {file_path.suffix} not allowed. "
-                f"Allowed extensions: {', '.join(allowed_extensions)}"
+                f"File extension {file_path.suffix} not allowed. Allowed extensions: {', '.join(allowed_extensions)}"
             )
 
     return file_path

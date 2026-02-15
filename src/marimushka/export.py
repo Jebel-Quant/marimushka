@@ -60,8 +60,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import jinja2
-from jinja2.sandbox import SandboxedEnvironment
 import typer
+from jinja2.sandbox import SandboxedEnvironment
 from loguru import logger
 from rich import print as rich_print
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TaskProgressColumn, TextColumn

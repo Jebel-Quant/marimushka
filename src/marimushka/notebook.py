@@ -298,9 +298,7 @@ class Notebook:
         try:
             # Run marimo export command with timeout
             logger.debug(f"Running command: {cmd}")
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, check=False, timeout=timeout
-            )  # nosec B603
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=timeout)  # nosec B603
 
             nb_logger = logger.bind(subprocess=f"[{self.path.name}] ")
 
@@ -323,7 +321,7 @@ class Notebook:
 
             return NotebookExportResult.succeeded(self.path, output_file)
 
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
