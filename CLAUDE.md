@@ -80,4 +80,4 @@ This project uses the Rhiza framework for standardized Python development. Key c
 | `API.md` | Python API reference for programmatic use |
 | `CHANGELOG.md` | Version history and release notes |
 | `CONTRIBUTING.md` | Contribution guidelines |
-| `templates/README.md` | Template customization guide with examples |
+| `src/marimushka/templates/README.md` | Template customization guide with examples |

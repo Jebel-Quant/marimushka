@@ -146,7 +146,7 @@ See: [README.md](README.md#project-structure)
 uvx marimushka export --template templates/custom.html.j2
 ```
 
-See: [templates/README.md](templates/README.md) for examples and [RECIPES.md](RECIPES.md#custom-templates) for real-world patterns.
+See: [src/marimushka/templates/README.md](../src/marimushka/templates/README.md) for examples and [RECIPES.md](RECIPES.md#custom-templates) for real-world patterns.
 
 ---
 

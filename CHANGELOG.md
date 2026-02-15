@@ -582,7 +582,7 @@ uvx marimushka export --notebooks-wasm notebooks_wasm
 - **Template documentation**: Improved template variable documentation
   - Better examples for custom templates
   - Clearer explanation of available variables
-  - See: [templates/README.md](templates/README.md)
+  - See: [src/marimushka/templates/README.md](src/marimushka/templates/README.md)
 
 ### Upgrade Path
 
@@ -608,7 +608,7 @@ uv add marimushka@0.1.6
     ```bash
     uvx marimushka export --template templates/custom.html.j2
     ```
-  - See: [templates/README.md](templates/README.md#creating-custom-templates)
+  - See: [src/marimushka/templates/README.md](src/marimushka/templates/README.md#creating-custom-templates)
 
 - **Tailwind CSS template**: Tailwind CSS default template
   - Modern, responsive design
@@ -672,7 +672,7 @@ uvx marimushka export --template templates/custom.html.j2
 - **Template system**: Jinja2 template system for index page generation
   - Customizable landing page
   - Lists all notebooks and apps
-  - See: [templates/README.md](templates/README.md)
+  - See: [src/marimushka/templates/README.md](src/marimushka/templates/README.md)
 
 - **Directory scanning**: Recursive directory scanning for notebooks
   - Finds all `.py` files automatically
