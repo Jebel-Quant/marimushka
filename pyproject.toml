@@ -35,7 +35,7 @@ build-backend = "hatchling.build"
 
 # Entry points for command-line scripts
 [project.scripts]
-marimushka = "marimushka.export:cli"
+marimushka = "marimushka.cli:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marimushka"]
