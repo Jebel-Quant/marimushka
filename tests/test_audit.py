@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from marimushka.audit import AuditLogger, get_audit_logger, init_audit_logger
 
 

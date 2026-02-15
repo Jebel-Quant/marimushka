@@ -1,7 +1,5 @@
 """Tests for the config module."""
 
-from pathlib import Path
-
 import pytest
 
 from marimushka.config import MarimushkaConfig

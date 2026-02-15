@@ -5,7 +5,7 @@ such as file access, export operations, and configuration changes.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +51,7 @@ class AuditLogger:
             return
 
         audit_entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "event_type": event_type,
             **details,
         }
@@ -67,9 +67,7 @@ class AuditLogger:
             except OSError as e:  # pragma: no cover
                 logger.error(f"Failed to write audit log: {e}")
 
-    def log_path_validation(
-        self, path: Path, validation_type: str, success: bool, reason: str | None = None
-    ) -> None:
+    def log_path_validation(self, path: Path, validation_type: str, success: bool, reason: str | None = None) -> None:
         """Log a path validation event.
 
         Args:
@@ -89,7 +87,9 @@ class AuditLogger:
             },
         )
 
-    def log_export(self, notebook_path: Path, output_path: Path | None, success: bool, error: str | None = None) -> None:
+    def log_export(
+        self, notebook_path: Path, output_path: Path | None, success: bool, error: str | None = None
+    ) -> None:
         """Log a notebook export event.
 
         Args:
