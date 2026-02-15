@@ -220,6 +220,185 @@ jobs:
           branch: gh-pages
 ```
 
+### Advanced CI/CD Patterns
+
+#### GitLab CI Integration
+
+Marimushka works seamlessly with GitLab CI/CD:
+
+```yaml
+# .gitlab-ci.yml
+stages:
+  - export
+  - deploy
+
+export-notebooks:
+  stage: export
+  image: python:3.11
+  script:
+    - pip install uv
+    - uvx marimushka export --output public
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+
+pages:
+  stage: deploy
+  dependencies:
+    - export-notebooks
+  script:
+    - echo "Deploying to GitLab Pages"
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+```
+
+#### CircleCI Integration
+
+```yaml
+# .circleci/config.yml
+version: 2.1
+
+jobs:
+  export:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install uv
+      - run:
+          name: Export notebooks
+          command: uvx marimushka export
+      - persist_to_workspace:
+          root: .
+          paths:
+            - _site
+      - store_artifacts:
+          path: _site
+          destination: notebooks
+
+workflows:
+  main:
+    jobs:
+      - export
+```
+
+#### Netlify Integration
+
+Deploy directly to Netlify from GitHub Actions:
+
+```yaml
+# .github/workflows/netlify.yml
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Export notebooks
+        uses: jebel-quant/marimushka@v0.2.1
+      
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: artifacts/marimushka
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+```
+
+#### Vercel Integration
+
+Deploy to Vercel using GitHub Actions:
+
+```yaml
+# .github/workflows/vercel.yml
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Export notebooks
+        uses: jebel-quant/marimushka@v0.2.1
+      
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: artifacts/marimushka
+```
+
+#### AWS S3 + CloudFront
+
+Deploy to AWS infrastructure:
+
+```yaml
+# .github/workflows/aws.yml
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Export notebooks
+        uses: jebel-quant/marimushka@v0.2.1
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Sync to S3
+        run: |
+          aws s3 sync artifacts/marimushka/ s3://${{ secrets.S3_BUCKET }}/notebooks/ \
+            --delete \
+            --cache-control "public, max-age=3600"
+      
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} \
+            --paths "/*"
+```
+
+**For more CI/CD recipes and patterns**, see:
+- [RECIPES.md](RECIPES.md#cicd-integration) - Comprehensive recipes and examples
+- [FAQ.md](FAQ.md#deployment--cicd) - Common deployment questions
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md#github-action-issues) - CI/CD troubleshooting
+
 ## 🎨 Customizing Templates
 
 Marimushka uses Jinja2 templates to generate the 'index.html' file.
@@ -313,6 +492,64 @@ make test
 # Run linting and formatting
 make fmt
 ```
+
+## 📚 Documentation
+
+Marimushka has comprehensive documentation to help you get the most out of it:
+
+### Core Documentation
+
+- **[README.md](README.md)** - This file. Getting started guide and feature overview
+- **[CHANGELOG.md](CHANGELOG.md)** - Detailed version history with migration notes
+- **[MIGRATION.md](docs/MIGRATION.md)** - Version upgrade guides with code examples
+- **[API.md](API.md)** - Complete Python API reference for programmatic usage
+
+### User Guides
+
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+  - Installation problems
+  - Export failures
+  - Template errors
+  - Performance issues
+  - GitHub Action troubleshooting
+  
+- **[RECIPES.md](docs/RECIPES.md)** - Real-world usage patterns and examples
+  - Basic workflows
+  - CI/CD integration (GitHub, GitLab, CircleCI)
+  - Custom templates
+  - Advanced patterns
+  - Deployment strategies
+  
+- **[FAQ.md](docs/FAQ.md)** - Frequently asked questions
+  - Quick answers to 50+ common questions
+  - Organized by topic
+  - Search-friendly format
+
+### Configuration
+
+- **[.marimushka.toml.example](.marimushka.toml.example)** - Configuration file example
+- **[templates/README.md](templates/README.md)** - Template customization guide
+
+### Security & Contributing
+
+- **[SECURITY.md](SECURITY.md)** - Security features, best practices, and reporting
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - How to contribute to the project
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - Community guidelines
+
+### Quick Links
+
+| I want to... | See... |
+|-------------|--------|
+| Get started quickly | [README.md - Installation](#-installation) |
+| Fix an error | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| See real examples | [RECIPES.md](docs/RECIPES.md) |
+| Find a quick answer | [FAQ.md](docs/FAQ.md) |
+| Upgrade versions | [MIGRATION.md](docs/MIGRATION.md) |
+| Use the Python API | [API.md](API.md) |
+| Deploy to GitHub Pages | [README.md - GitHub Action](#github-action) |
+| Customize templates | [templates/README.md](templates/README.md) |
+| Report a security issue | [SECURITY.md](SECURITY.md#reporting-a-vulnerability) |
+| Contribute | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## 📄 License
 
