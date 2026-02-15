@@ -3,9 +3,12 @@
 import pytest
 
 from marimushka.security import (
+    safe_open_file,
     sanitize_error_message,
+    set_secure_file_permissions,
     validate_bin_path,
     validate_file_path,
+    validate_file_size,
     validate_max_workers,
     validate_path_traversal,
 )
@@ -297,3 +300,114 @@ class TestValidateMaxWorkers:
 
         with pytest.raises(ValueError, match="min_workers must be at least 1"):
             validate_max_workers(4, min_workers=0, max_allowed=10)
+
+
+class TestValidateFileSize:
+    """Tests for validate_file_size function."""
+
+    def test_validate_file_size_within_limit(self, tmp_path):
+        """Test validation of file within size limit."""
+        # Setup
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("small content")
+
+        # Execute
+        result = validate_file_size(test_file, max_size_bytes=1024)
+
+        # Assert
+        assert result is True
+
+    def test_validate_file_size_exceeds_limit(self, tmp_path):
+        """Test validation fails for file exceeding limit."""
+        # Setup
+        test_file = tmp_path / "large.txt"
+        test_file.write_text("x" * 2000)
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="File size .* exceeds limit"):
+            validate_file_size(test_file, max_size_bytes=1000)
+
+    def test_validate_file_size_not_exists(self, tmp_path):
+        """Test validation fails for non-existent file."""
+        # Setup
+        test_file = tmp_path / "nonexistent.txt"
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="File does not exist"):
+            validate_file_size(test_file)
+
+
+class TestSafeOpenFile:
+    """Tests for safe_open_file function."""
+
+    def test_safe_open_file_write(self, tmp_path):
+        """Test safe file opening for writing."""
+        # Setup
+        test_file = tmp_path / "test.txt"
+
+        # Execute
+        import os
+
+        fd = safe_open_file(test_file, "w")
+        with os.fdopen(fd, "w") as f:
+            f.write("test content")
+
+        # Assert
+        assert test_file.read_text() == "test content"
+
+    def test_safe_open_file_read(self, tmp_path):
+        """Test safe file opening for reading."""
+        # Setup
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("test content")
+
+        # Execute
+        import os
+
+        fd = safe_open_file(test_file, "r")
+        with os.fdopen(fd, "r") as f:
+            content = f.read()
+
+        # Assert
+        assert content == "test content"
+
+    def test_safe_open_file_symlink_rejected(self, tmp_path):
+        """Test that symlinks are rejected."""
+        # Setup
+        real_file = tmp_path / "real.txt"
+        real_file.write_text("content")
+        symlink = tmp_path / "link.txt"
+        symlink.symlink_to(real_file)
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="Cannot open symlink"):
+            safe_open_file(symlink, "r")
+
+
+class TestSetSecureFilePermissions:
+    """Tests for set_secure_file_permissions function."""
+
+    def test_set_secure_file_permissions(self, tmp_path):
+        """Test setting file permissions."""
+        # Setup
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+
+        # Execute
+        set_secure_file_permissions(test_file, mode=0o600)
+
+        # Assert
+        import os
+        import stat
+
+        st = os.stat(test_file)
+        assert stat.S_IMODE(st.st_mode) == 0o600
+
+    def test_set_secure_file_permissions_not_exists(self, tmp_path):
+        """Test setting permissions on non-existent file fails."""
+        # Setup
+        test_file = tmp_path / "nonexistent.txt"
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="File does not exist"):
+            set_secure_file_permissions(test_file)

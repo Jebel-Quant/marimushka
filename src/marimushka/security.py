@@ -4,6 +4,7 @@ This module provides security-related utilities including path validation,
 path traversal protection, and other security measures.
 """
 
+import os
 from pathlib import Path
 
 
@@ -213,3 +214,120 @@ def validate_max_workers(max_workers: int, min_workers: int = 1, max_allowed: in
 
     # Bound the value using max/min for cleaner logic
     return max(min_workers, min(max_workers, max_allowed))
+
+
+def validate_file_size(file_path: Path, max_size_bytes: int = 10 * 1024 * 1024) -> bool:
+    """Validate that a file's size is within acceptable limits.
+
+    This helps prevent DoS attacks via extremely large files.
+
+    Args:
+        file_path: Path to the file to check.
+        max_size_bytes: Maximum allowed file size in bytes. Defaults to 10MB.
+
+    Returns:
+        True if file size is acceptable.
+
+    Raises:
+        ValueError: If file size exceeds the limit or file doesn't exist.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> # File within limit
+        >>> validate_file_size(Path("small.txt"), max_size_bytes=1024*1024)  # doctest: +SKIP
+        True
+
+    """
+    if not file_path.exists():
+        raise ValueError(f"File does not exist: {file_path}")  # noqa: TRY003
+
+    try:
+        file_size = file_path.stat().st_size
+    except OSError as e:
+        raise ValueError(f"Cannot read file size: {file_path}") from e  # noqa: TRY003
+
+    if file_size > max_size_bytes:
+        max_mb = max_size_bytes / (1024 * 1024)
+        actual_mb = file_size / (1024 * 1024)
+        msg = f"File size {actual_mb:.2f}MB exceeds limit of {max_mb:.2f}MB: {file_path}"
+        raise ValueError(msg)
+
+    return True
+
+
+def safe_open_file(file_path: Path, mode: str = "r") -> int:
+    """Safely open a file and return a file descriptor to avoid TOCTOU races.
+
+    This function uses os.open with O_NOFOLLOW to prevent symlink attacks
+    and returns a file descriptor that can be used with Path.open() via os.fdopen.
+
+    Args:
+        file_path: Path to the file to open.
+        mode: File open mode ('r' for read, 'w' for write, etc.).
+
+    Returns:
+        File descriptor that should be used with os.fdopen.
+
+    Raises:
+        ValueError: If the path is invalid or a symlink.
+        OSError: If the file cannot be opened.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> import os
+        >>> # Safe file open
+        >>> fd = safe_open_file(Path("test.txt"), "w")  # doctest: +SKIP
+        >>> with os.fdopen(fd, "w") as f:  # doctest: +SKIP
+        ...     f.write("safe content")
+
+    """
+    # Validate path first
+    if not file_path.exists():
+        if "w" not in mode and "a" not in mode:
+            raise ValueError(f"File does not exist: {file_path}")  # noqa: TRY003
+
+    # Check if it's a symlink (prevent symlink attacks)
+    if file_path.exists() and file_path.is_symlink():
+        raise ValueError(f"Cannot open symlink: {file_path}")  # noqa: TRY003
+
+    # Open file with O_NOFOLLOW to prevent TOCTOU symlink race
+    flags = os.O_NOFOLLOW
+    if mode == "r":
+        flags |= os.O_RDONLY
+    elif mode == "w":
+        flags |= os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    elif mode == "a":
+        flags |= os.O_WRONLY | os.O_CREAT | os.O_APPEND
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")  # noqa: TRY003
+
+    # Open with restricted permissions (owner read/write only)
+    try:
+        fd = os.open(file_path, flags, mode=0o600)
+        return fd
+    except OSError as e:
+        raise ValueError(f"Cannot open file: {file_path}") from e  # noqa: TRY003
+
+
+def set_secure_file_permissions(file_path: Path, mode: int = 0o644) -> None:
+    """Set secure permissions on a file.
+
+    Args:
+        file_path: Path to the file.
+        mode: Permission mode (default: 0o644 = rw-r--r--).
+
+    Raises:
+        ValueError: If file doesn't exist or permissions cannot be set.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> set_secure_file_permissions(Path("test.txt"), 0o600)  # doctest: +SKIP
+
+    """
+    if not file_path.exists():
+        raise ValueError(f"File does not exist: {file_path}")  # noqa: TRY003
+
+    try:
+        os.chmod(file_path, mode)
+    except OSError as e:
+        raise ValueError(f"Cannot set permissions on {file_path}") from e  # noqa: TRY003

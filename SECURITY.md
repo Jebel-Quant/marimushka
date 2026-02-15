@@ -89,6 +89,13 @@ Jinja2 templates are rendered with enhanced security:
 - Worker count bounds enforcement (1-16)
 - Sandboxed Jinja2 template rendering
 - Comprehensive input validation
+- **TOCTOU race condition prevention**: Uses atomic file operations and stat checks
+- **DoS protections**: File size limits (10MB default), timeout enforcement, worker limits
+- **Error message sanitization**: Sensitive paths and data redacted from logs
+- **Audit logging**: Security-relevant events logged to structured audit log
+- **SRI (Subresource Integrity)**: CDN resources protected with integrity hashes
+- **Secure file permissions**: Output files created with restrictive permissions (0o644)
+- **Configuration file support**: Security settings configurable via .marimushka.toml
 
 ## Security Best Practices
 
@@ -100,6 +107,43 @@ When using Marimushka:
 4. **Review templates** before using custom templates from untrusted sources
 5. **Set appropriate timeouts** for long-running notebook exports
 6. **Use whitelisted bin paths** in shared/multi-tenant environments
+7. **Enable audit logging** in production environments for security monitoring
+8. **Use configuration files** to standardize security settings across deployments
+9. **Keep SRI hashes updated** when using custom templates with CDN resources
+10. **Review audit logs** regularly for suspicious activity
+
+## Configuration File
+
+Marimushka supports configuration via `.marimushka.toml` file:
+
+```toml
+[marimushka]
+output = "_site"
+sandbox = true
+parallel = true
+max_workers = 4
+timeout = 300
+
+[marimushka.security]
+audit_enabled = true
+audit_log = ".marimushka-audit.log"
+max_file_size_mb = 10
+file_permissions = "0o644"
+```
+
+See `.marimushka.toml.example` for a complete example.
+
+## Audit Logging
+
+Security-relevant events are logged to the audit log when enabled:
+
+- Path validation (traversal attempts, bin path checks)
+- Template rendering operations
+- Notebook export operations
+- File access operations
+- Configuration loading
+
+Audit logs are structured JSON entries with timestamps and event details.
 
 ## Security Updates
 

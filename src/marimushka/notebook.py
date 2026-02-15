@@ -48,6 +48,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from .audit import get_audit_logger
 from .exceptions import (
     ExportError,
     ExportExecutableNotFoundError,
@@ -56,7 +57,7 @@ from .exceptions import (
     NotebookInvalidError,
     NotebookNotFoundError,
 )
-from .security import validate_bin_path, validate_path_traversal
+from .security import sanitize_error_message, set_secure_file_permissions, validate_bin_path, validate_path_traversal
 
 
 class Kind(Enum):
@@ -231,6 +232,7 @@ class Notebook:
             NotebookExportResult indicating success or failure with details.
 
         """
+        audit_logger = get_audit_logger()
         executable = "uvx"
         exe: str | None = None
 
@@ -238,9 +240,12 @@ class Notebook:
             # Validate bin_path for security
             try:
                 validated_bin_path = validate_bin_path(bin_path)
+                audit_logger.log_path_validation(bin_path, "bin_path", True)
             except ValueError as e:
                 err: ExportError = ExportExecutableNotFoundError(executable, bin_path)
-                logger.error(f"Invalid bin_path: {e}")
+                sanitized_error = sanitize_error_message(str(e))
+                logger.error(f"Invalid bin_path: {sanitized_error}")
+                audit_logger.log_path_validation(bin_path, "bin_path", False, sanitized_error)
                 return NotebookExportResult.failed(self.path, err)
 
             # Construct the full executable path
@@ -254,6 +259,7 @@ class Notebook:
                 else:
                     err = ExportExecutableNotFoundError(executable, validated_bin_path)
                     logger.error(str(err))
+                    audit_logger.log_export(self.path, None, False, str(err))
                     return NotebookExportResult.failed(self.path, err)
         else:
             exe = executable
@@ -270,26 +276,31 @@ class Notebook:
         # Validate output path to prevent path traversal
         try:
             validate_path_traversal(output_file)
+            audit_logger.log_path_validation(output_file, "output_path", True)
         except ValueError as e:
+            sanitized_error = sanitize_error_message(str(e))
             err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
-                stderr=f"Invalid output path: {e}",
+                stderr=f"Invalid output path: {sanitized_error}",
             )
             logger.error(str(err))
+            audit_logger.log_path_validation(output_file, "output_path", False, sanitized_error)
             return NotebookExportResult.failed(self.path, err)
 
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
         except OSError as e:  # pragma: no cover
+            sanitized_error = sanitize_error_message(str(e))
             err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
-                stderr=f"Failed to create output directory: {e}",
+                stderr=f"Failed to create output directory: {sanitized_error}",
             )
             logger.error(str(err))
+            audit_logger.log_export(self.path, None, False, sanitized_error)
             return NotebookExportResult.failed(self.path, err)
 
         # Add the notebook path and output file to command
@@ -309,16 +320,25 @@ class Notebook:
                 nb_logger.warning(f"stderr:\n{result.stderr.strip()}")
 
             if result.returncode != 0:
+                sanitized_stderr = sanitize_error_message(result.stderr)
                 err = ExportSubprocessError(
                     notebook_path=self.path,
                     command=cmd,
                     return_code=result.returncode,
                     stdout=result.stdout,
-                    stderr=result.stderr,
+                    stderr=sanitized_stderr,
                 )
                 nb_logger.error(str(err))
+                audit_logger.log_export(self.path, None, False, sanitized_stderr)
                 return NotebookExportResult.failed(self.path, err)
 
+            # Set secure permissions on output file
+            try:
+                set_secure_file_permissions(output_file, mode=0o644)
+            except ValueError as e:  # pragma: no cover
+                logger.warning(f"Could not set secure permissions on {output_file}: {e}")
+
+            audit_logger.log_export(self.path, output_file, True)
             return NotebookExportResult.succeeded(self.path, output_file)
 
         except subprocess.TimeoutExpired:
@@ -329,20 +349,25 @@ class Notebook:
                 stderr=f"Export timed out after {timeout} seconds",
             )
             logger.error(str(err))
+            audit_logger.log_export(self.path, None, False, f"timeout after {timeout}s")
             return NotebookExportResult.failed(self.path, err)
         except FileNotFoundError as e:
             # Executable not found in PATH
             err = ExportExecutableNotFoundError(executable)
-            logger.error(f"{err}: {e}")
+            sanitized_error = sanitize_error_message(str(e))
+            logger.error(f"{err}: {sanitized_error}")
+            audit_logger.log_export(self.path, None, False, sanitized_error)
             return NotebookExportResult.failed(self.path, err)
         except subprocess.SubprocessError as e:
+            sanitized_error = sanitize_error_message(str(e))
             err = ExportSubprocessError(
                 notebook_path=self.path,
                 command=cmd,
                 return_code=-1,
-                stderr=str(e),
+                stderr=sanitized_error,
             )
             logger.error(str(err))
+            audit_logger.log_export(self.path, None, False, sanitized_error)
             return NotebookExportResult.failed(self.path, err)
 
     @property

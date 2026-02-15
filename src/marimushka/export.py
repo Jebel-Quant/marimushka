@@ -67,6 +67,7 @@ from rich import print as rich_print
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TaskProgressColumn, TextColumn
 
 from . import __version__
+from .audit import get_audit_logger
 from .exceptions import (
     BatchExportResult,
     IndexWriteError,
@@ -76,7 +77,13 @@ from .exceptions import (
     TemplateRenderError,
 )
 from .notebook import Kind, Notebook, folder2notebooks
-from .security import validate_max_workers, validate_path_traversal
+from .security import (
+    sanitize_error_message,
+    set_secure_file_permissions,
+    validate_file_size,
+    validate_max_workers,
+    validate_path_traversal,
+)
 
 # Maximum number of changed files to display in watch mode
 _MAX_CHANGED_FILES_TO_DISPLAY = 5
@@ -104,18 +111,46 @@ def _validate_template(template_path: Path) -> None:
         TemplateInvalidError: If the template path is not a file.
 
     """
+    audit_logger = get_audit_logger()
+
     # Validate path traversal
     try:
         validate_path_traversal(template_path)
+        audit_logger.log_path_validation(template_path, "traversal", True)
     except ValueError as e:
-        raise TemplateInvalidError(template_path, reason=f"path traversal detected: {e}") from e
+        audit_logger.log_path_validation(template_path, "traversal", False, str(e))
+        sanitized_msg = sanitize_error_message(str(e))
+        raise TemplateInvalidError(template_path, reason=f"path traversal detected: {sanitized_msg}") from e
 
-    if not template_path.exists():
-        raise TemplateNotFoundError(template_path)
-    if not template_path.is_file():
+    # Check existence (avoid TOCTOU by using stat)
+    try:
+        stat_result = template_path.stat()
+    except FileNotFoundError:
+        audit_logger.log_path_validation(template_path, "existence", False, "file not found")
+        raise TemplateNotFoundError(template_path) from None
+    except OSError as e:
+        audit_logger.log_path_validation(template_path, "existence", False, str(e))
+        raise TemplateInvalidError(template_path, reason=f"cannot access file: {e}") from e
+
+    # Check if it's a regular file
+    import stat
+
+    if not stat.S_ISREG(stat_result.st_mode):
+        audit_logger.log_path_validation(template_path, "file_type", False, "not a regular file")
         raise TemplateInvalidError(template_path, reason="path is not a file")
+
+    # Check file size to prevent DoS
+    try:
+        validate_file_size(template_path, max_size_bytes=10 * 1024 * 1024)  # 10MB limit
+    except ValueError as e:
+        audit_logger.log_path_validation(template_path, "size", False, str(e))
+        sanitized_msg = sanitize_error_message(str(e))
+        raise TemplateInvalidError(template_path, reason=f"file size limit exceeded: {sanitized_msg}") from e
+
     if template_path.suffix not in (".j2", ".jinja2"):
         logger.warning(f"Template file '{template_path}' does not have .j2 or .jinja2 extension")
+
+    audit_logger.log_path_validation(template_path, "complete", True)
 
 
 def _export_notebook(
@@ -185,7 +220,7 @@ def _export_notebooks_parallel(
             batch_result.add(result)
 
             if not result.success:
-                error_msg = str(result.error) if result.error else "Unknown error"
+                error_msg = sanitize_error_message(str(result.error)) if result.error else "Unknown error"
                 logger.error(f"Failed to export {result.notebook_path.name}: {error_msg}")
 
             if progress and task_id is not None:
@@ -300,7 +335,7 @@ def _export_all_notebooks(
             f"Export completed: {combined_batch_result.succeeded} succeeded, {combined_batch_result.failed} failed"
         )
         for failure in combined_batch_result.failures:
-            error_detail = str(failure.error) if failure.error else "Unknown error"
+            error_detail = sanitize_error_message(str(failure.error)) if failure.error else "Unknown error"
             logger.debug(f"  - {failure.notebook_path.name}: {error_detail}")
 
     return combined_batch_result
@@ -327,6 +362,7 @@ def _render_template(
         TemplateRenderError: If the template fails to render.
 
     """
+    audit_logger = get_audit_logger()
     template_dir = template_file.parent
     template_name = template_file.name
 
@@ -337,12 +373,16 @@ def _render_template(
         )
         template = env.get_template(template_name)
 
-        return template.render(
+        rendered = template.render(
             notebooks=notebooks,
             apps=apps,
             notebooks_wasm=notebooks_wasm,
         )
+        audit_logger.log_template_render(template_file, True)
+        return rendered
     except jinja2.exceptions.TemplateError as e:
+        sanitized_error = sanitize_error_message(str(e))
+        audit_logger.log_template_render(template_file, False, sanitized_error)
         raise TemplateRenderError(template_file, e) from e
 
 
@@ -357,11 +397,20 @@ def _write_index_file(index_path: Path, content: str) -> None:
         IndexWriteError: If the file cannot be written.
 
     """
+    audit_logger = get_audit_logger()
     try:
+        # Write file with secure content
         with Path.open(index_path, "w") as f:
             f.write(content)
+
+        # Set secure file permissions
+        set_secure_file_permissions(index_path, mode=0o644)
+
         logger.info(f"Successfully generated index file at {index_path}")
+        audit_logger.log_file_access(index_path, "write", True)
     except OSError as e:
+        sanitized_error = sanitize_error_message(str(e))
+        audit_logger.log_file_access(index_path, "write", False, sanitized_error)
         raise IndexWriteError(index_path, e) from e
 
 
