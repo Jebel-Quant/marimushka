@@ -290,7 +290,7 @@ class TestGenerateIndex:
     """Tests for the _generate_index function."""
 
     @patch.object(Path, "open", new_callable=mock_open)
-    @patch("jinja2.Environment")
+    @patch("marimushka.export.SandboxedEnvironment")
     def test_generate_index_success(self, mock_env, mock_file_open, tmp_path):
         """Test the successful generation of index.html."""
         # Setup
@@ -332,9 +332,15 @@ class TestGenerateIndex:
 
         # Assert
         # Check that export was called for each notebook and app
-        mock_notebook1.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
-        mock_notebook2.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
-        mock_app1.export.assert_called_once_with(output_dir=output_dir / "apps", sandbox=True, bin_path=None)
+        mock_notebook1.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
+        mock_notebook2.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
+        mock_app1.export.assert_called_once_with(
+            output_dir=output_dir / "apps", sandbox=True, bin_path=None, timeout=300
+        )
 
         # Check that the template was rendered and written to file
         mock_env.assert_called_once()
@@ -347,7 +353,7 @@ class TestGenerateIndex:
         assert result == "<html>Rendered content</html>"
 
     @patch.object(Path, "open", side_effect=OSError("File error"))
-    @patch("jinja2.Environment")
+    @patch("marimushka.export.SandboxedEnvironment")
     def test_generate_index_file_error(self, mock_env, mock_file_open, tmp_path):
         """Test handling of file error during index generation."""
         # Setup
@@ -375,9 +381,11 @@ class TestGenerateIndex:
         assert exc_info.value.index_path == output_dir / "index.html"
 
         # Check that export was still called before the error
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
+        mock_notebook.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
 
-    @patch("jinja2.Environment")
+    @patch("marimushka.export.SandboxedEnvironment")
     @patch.object(Path, "mkdir")
     def test_generate_index_template_error(self, mock_mkdir, mock_env, tmp_path):
         """Test handling of template error during index generation."""
@@ -404,7 +412,9 @@ class TestGenerateIndex:
         assert exc_info.value.template_path == template_file
 
         # Check that export was still called before the template error
-        mock_notebook.export.assert_called_once_with(output_dir=output_dir / "notebooks", sandbox=True, bin_path=None)
+        mock_notebook.export.assert_called_once_with(
+            output_dir=output_dir / "notebooks", sandbox=True, bin_path=None, timeout=300
+        )
 
     def test_generate_index_no_notebooks(self, tmp_path):
         """Test index generation with no notebooks."""
