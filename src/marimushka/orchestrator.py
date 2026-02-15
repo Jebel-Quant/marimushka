@@ -12,7 +12,7 @@ from jinja2.sandbox import SandboxedEnvironment
 from loguru import logger
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TaskProgressColumn, TextColumn
 
-from .audit import AuditLogger
+from .audit import AuditLogger, get_audit_logger
 from .exceptions import (
     BatchExportResult,
     IndexWriteError,
@@ -330,9 +330,6 @@ def generate_index(
         IndexWriteError: If the index file cannot be written.
 
     """
-    # Import here to avoid circular dependency
-    from .audit import get_audit_logger
-
     if audit_logger is None:
         audit_logger = get_audit_logger()
 

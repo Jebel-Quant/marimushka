@@ -5,7 +5,7 @@ used in the export process. It ensures security by checking for path traversal,
 file existence, and size limits.
 """
 
-import stat as stat_module
+import stat
 from pathlib import Path
 
 from loguru import logger
@@ -47,7 +47,7 @@ def validate_template(template_path: Path, audit_logger: AuditLogger) -> None:
         raise TemplateInvalidError(template_path, reason=f"cannot access file: {e}") from e
 
     # Check if it's a regular file
-    if not stat_module.S_ISREG(stat_result.st_mode):
+    if not stat.S_ISREG(stat_result.st_mode):
         audit_logger.log_path_validation(template_path, "file_type", False, "not a regular file")
         raise TemplateInvalidError(template_path, reason="path is not a file")
 
