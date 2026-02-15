@@ -10,10 +10,17 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from marimushka.notebook import Kind, Notebook
+
 
 @pytest.fixture
 def mock_logger():
-    """Return a mock logger instance."""
+    """Return a mock logger instance.
+    
+    Returns:
+        MagicMock: A mock logger for testing.
+    
+    """
     return MagicMock()
 
 
@@ -69,3 +76,173 @@ def marimushka_path():
     # If we still can't find it, raise an error
     msg = "marimushka executable not found in PATH or virtual environment"
     raise RuntimeError(msg)
+
+
+# New fixtures for comprehensive testing
+
+@pytest.fixture
+def sample_notebook(tmp_path):
+    """Create a sample notebook file for testing.
+    
+    Args:
+        tmp_path: Pytest temporary path fixture.
+        
+    Returns:
+        Notebook: A sample notebook instance.
+    
+    """
+    notebook_path = tmp_path / "sample_notebook.py"
+    notebook_path.write_text("# Sample marimo notebook\nimport marimo as mo\n")
+    return Notebook(path=notebook_path, kind=Kind.NB)
+
+
+@pytest.fixture
+def sample_app(tmp_path):
+    """Create a sample app file for testing.
+    
+    Args:
+        tmp_path: Pytest temporary path fixture.
+        
+    Returns:
+        Notebook: A sample app instance.
+    
+    """
+    app_path = tmp_path / "sample_app.py"
+    app_path.write_text("# Sample marimo app\nimport marimo as mo\n")
+    return Notebook(path=app_path, kind=Kind.APP)
+
+
+@pytest.fixture
+def sample_notebook_wasm(tmp_path):
+    """Create a sample interactive notebook file for testing.
+    
+    Args:
+        tmp_path: Pytest temporary path fixture.
+        
+    Returns:
+        Notebook: A sample interactive notebook instance.
+    
+    """
+    notebook_path = tmp_path / "sample_notebook_wasm.py"
+    notebook_path.write_text("# Sample interactive marimo notebook\nimport marimo as mo\n")
+    return Notebook(path=notebook_path, kind=Kind.NB_WASM)
+
+
+@pytest.fixture
+def sample_template(tmp_path):
+    """Create a sample Jinja2 template for testing.
+    
+    Args:
+        tmp_path: Pytest temporary path fixture.
+        
+    Returns:
+        Path: Path to the sample template file.
+    
+    """
+    template_path = tmp_path / "sample_template.html.j2"
+    template_path.write_text("""
+<!DOCTYPE html>
+<html>
+<head><title>Test Template</title></head>
+<body>
+    <h1>Notebooks</h1>
+    <ul>
+    {% for nb in notebooks %}
+        <li><a href="{{ nb.html_path }}">{{ nb.display_name }}</a></li>
+    {% endfor %}
+    </ul>
+    <h1>Apps</h1>
+    <ul>
+    {% for app in apps %}
+        <li><a href="{{ app.html_path }}">{{ app.display_name }}</a></li>
+    {% endfor %}
+    </ul>
+</body>
+</html>
+""")
+    return template_path
+
+
+@pytest.fixture
+def notebooks_dir(tmp_path):
+    """Create a directory with sample notebooks for testing.
+    
+    Args:
+        tmp_path: Pytest temporary path fixture.
+        
+    Returns:
+        Path: Path to the notebooks directory.
+    
+    """
+    nb_dir = tmp_path / "notebooks"
+    nb_dir.mkdir()
+    
+    # Create a few sample notebooks
+    (nb_dir / "notebook1.py").write_text("# Notebook 1\nimport marimo as mo\n")
+    (nb_dir / "notebook2.py").write_text("# Notebook 2\nimport marimo as mo\n")
+    (nb_dir / "notebook3.py").write_text("# Notebook 3\nimport marimo as mo\n")
+    
+    return nb_dir
+
+
+@pytest.fixture
+def apps_dir(tmp_path):
+    """Create a directory with sample apps for testing.
+    
+    Args:
+        tmp_path: Pytest temporary path fixture.
+        
+    Returns:
+        Path: Path to the apps directory.
+    
+    """
+    app_dir = tmp_path / "apps"
+    app_dir.mkdir()
+    
+    # Create a few sample apps
+    (app_dir / "app1.py").write_text("# App 1\nimport marimo as mo\n")
+    (app_dir / "app2.py").write_text("# App 2\nimport marimo as mo\n")
+    
+    return app_dir
+
+
+@pytest.fixture
+def output_dir(tmp_path):
+    """Create an output directory for testing.
+    
+    Args:
+        tmp_path: Pytest temporary path fixture.
+        
+    Returns:
+        Path: Path to the output directory.
+    
+    """
+    out_dir = tmp_path / "_site"
+    out_dir.mkdir()
+    return out_dir
+
+
+@pytest.fixture(scope="session")
+def progress_tracker():
+    """Create a progress tracker for testing progress callbacks.
+    
+    Returns:
+        list: A list to store progress reports.
+    
+    """
+    return []
+
+
+@pytest.fixture
+def mock_audit_logger():
+    """Create a mock audit logger for testing.
+    
+    Returns:
+        MagicMock: A mock audit logger.
+    
+    """
+    logger = MagicMock()
+    logger.log_file_access = MagicMock()
+    logger.log_template_render = MagicMock()
+    return logger
+
