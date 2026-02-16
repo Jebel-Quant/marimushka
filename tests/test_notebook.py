@@ -376,38 +376,35 @@ class TestNotebook:
                 cmd_args = mock_run.call_args[0][0]
                 assert cmd_args[0] == str(bin_path / executable)
 
+    @patch("marimushka.notebook.validate_bin_path")
     @patch("os.access")
     @patch("shutil.which")
-    def test_export_bin_path_not_found(self, mock_which, mock_access, resource_dir, tmp_path):
+    def test_export_bin_path_not_found(self, mock_which, mock_access, mock_validate, resource_dir, tmp_path):
         """Test export of a notebook when bin path executable is not found."""
         # Setup
-        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        notebook_path = resource_dir / "marimo" / "notebooks" / "fibonacci.py"
         output_dir = tmp_path
-        bin_path = Path("/invalid/bin")
+        bin_path = tmp_path / "bin"
+        bin_path.mkdir()
 
-        # Mock shutil.which to return None
+        # Mock validate_bin_path to return the path (validation passes)
+        mock_validate.return_value = bin_path
+        # Mock shutil.which to return None (executable not found in path)
         mock_which.return_value = None
         # Mock os.access to return False (executable is not accessible)
         mock_access.return_value = False
 
-        # Create a notebook with mocked path validation
-        with (
-            patch.object(Path, "exists", return_value=True),
-            patch.object(Path, "is_file", return_value=True),
-            patch.object(Path, "suffix", ".py"),
-        ):
-            notebook = Notebook(notebook_path, kind=Kind.NB)
+        # Create a notebook
+        notebook = Notebook(notebook_path, kind=Kind.NB)
 
-            # Mock the is_file check on the executable path to return False
-            with patch.object(Path, "is_file", return_value=False):
-                # Execute
-                result = notebook.export(output_dir, bin_path=bin_path)
+        # Execute - the exe_path won't exist so is_file will naturally return False
+        result = notebook.export(output_dir, bin_path=bin_path)
 
-                # Assert
-                assert result.success is False
-                assert result.error is not None
-                assert isinstance(result.error, ExportExecutableNotFoundError)
-                assert result.error.search_path == bin_path
+        # Assert - should hit the error path lines 291-294
+        assert result.success is False
+        assert result.error is not None
+        assert isinstance(result.error, ExportExecutableNotFoundError)
+        assert result.error.search_path == bin_path
 
     @patch("subprocess.run")
     def test_export_nonzero_returncode(self, mock_run, resource_dir, tmp_path):
@@ -641,3 +638,91 @@ class TestFolder2NotebooksHypothesis:
 
             names = [nb.path.name for nb in notebooks]
             assert names == sorted(names)
+
+
+class TestNotebookExportEdgeCases:
+    """Tests for edge cases in Notebook.export method."""
+
+    @patch("subprocess.run")
+    def test_export_timeout_expired(self, mock_run, resource_dir, tmp_path):
+        """Test export handles TimeoutExpired exception."""
+        # Setup
+        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        output_dir = tmp_path
+
+        # Mock subprocess to raise TimeoutExpired
+        mock_run.side_effect = subprocess.TimeoutExpired("cmd", timeout=5)
+
+        # Create a notebook with mocked path validation
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path, kind=Kind.NB)
+
+            # Execute
+            result = notebook.export(output_dir, timeout=5)
+
+            # Assert
+            assert result.success is False
+            assert result.error is not None
+            assert isinstance(result.error, ExportSubprocessError)
+            assert "timed out" in result.error.stderr
+
+    @patch("marimushka.notebook.validate_path_traversal")
+    @patch("subprocess.run")
+    def test_export_path_traversal_error(self, mock_run, mock_validate, resource_dir, tmp_path):
+        """Test export handles path traversal validation error."""
+        # Setup
+        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        output_dir = tmp_path
+
+        # Mock validate_path_traversal to raise ValueError
+        mock_validate.side_effect = ValueError("Path traversal detected")
+
+        # Create a notebook with mocked path validation
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path, kind=Kind.NB)
+
+            # Execute
+            result = notebook.export(output_dir)
+
+            # Assert
+            assert result.success is False
+            assert result.error is not None
+            assert isinstance(result.error, ExportSubprocessError)
+            assert "Invalid output path" in result.error.stderr
+
+    @patch("marimushka.notebook.validate_bin_path")
+    @patch("shutil.which")
+    @patch("subprocess.run")
+    def test_export_bin_path_validation_error(self, mock_run, mock_which, mock_validate, resource_dir, tmp_path):
+        """Test export handles bin_path validation error."""
+        # Setup
+        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        output_dir = tmp_path
+        bin_path = Path("/invalid/bin")
+
+        # Mock validate_bin_path to raise ValueError
+        mock_validate.side_effect = ValueError("Invalid bin path")
+
+        # Create a notebook with mocked path validation
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "suffix", ".py"),
+        ):
+            notebook = Notebook(notebook_path, kind=Kind.NB)
+
+            # Execute
+            result = notebook.export(output_dir, bin_path=bin_path)
+
+            # Assert
+            assert result.success is False
+            assert result.error is not None
+            assert isinstance(result.error, ExportExecutableNotFoundError)

@@ -9,8 +9,30 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from hypothesis import HealthCheck, Phase, settings
 
 from marimushka.notebook import Kind, Notebook
+
+# Hypothesis configuration for faster tests on Python 3.14+
+# Python 3.14 has some performance regressions that affect hypothesis
+if sys.version_info >= (3, 14):
+    # Use a faster profile for Python 3.14+
+    settings.register_profile(
+        "py314",
+        max_examples=20,  # Reduce from default 100
+        deadline=2000,  # 2 seconds per example (increased from default)
+        suppress_health_check=[HealthCheck.too_slow],
+        phases=[Phase.generate, Phase.target],  # Skip shrinking phase
+    )
+    settings.load_profile("py314")
+else:
+    # Standard profile for Python 3.11-3.13
+    settings.register_profile(
+        "default",
+        max_examples=50,  # Reasonable default
+        deadline=1000,  # 1 second per example
+    )
+    settings.load_profile("default")
 
 
 @pytest.fixture

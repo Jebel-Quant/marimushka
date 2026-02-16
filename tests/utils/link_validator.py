@@ -3,9 +3,41 @@
 This module provides functions to extract and validate links from HTML content.
 """
 
+from html.parser import HTMLParser
 from pathlib import Path
 
-from bs4 import BeautifulSoup
+
+class LinkExtractor(HTMLParser):
+    """HTML parser to extract links and image sources."""
+
+    def __init__(self) -> None:
+        """Initialize the link extractor."""
+        super().__init__()
+        self.links: dict[str, list[str]] = {"internal": [], "external": [], "image": []}
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Handle start tags to extract links.
+
+        Args:
+            tag: The HTML tag name.
+            attrs: List of (attribute, value) tuples.
+
+        """
+        attrs_dict = dict(attrs)
+
+        # Extract links from <a> tags
+        if tag == "a" and "href" in attrs_dict:
+            href = attrs_dict["href"]
+            if href and href.startswith(("http://", "https://", "//")):
+                self.links["external"].append(href)
+            elif href:
+                self.links["internal"].append(href)
+
+        # Extract links from <img> tags
+        elif tag == "img" and "src" in attrs_dict:
+            src = attrs_dict["src"]
+            if src:
+                self.links["image"].append(src)
 
 
 def extract_links(html_content: str) -> dict[str, list[str]]:
@@ -19,25 +51,9 @@ def extract_links(html_content: str) -> dict[str, list[str]]:
             The link types are 'internal', 'external', and 'image'.
 
     """
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    # Extract links from <a> tags
-    links = {"internal": [], "external": [], "image": []}
-
-    # Extract links from <a> tags
-    for a_tag in soup.find_all("a", href=True):
-        href = a_tag["href"]
-        if href.startswith(("http://", "https://", "//")):
-            links["external"].append(href)
-        else:
-            links["internal"].append(href)
-
-    # Extract links from <img> tags
-    for img_tag in soup.find_all("img", src=True):
-        src = img_tag["src"]
-        links["image"].append(src)
-
-    return links
+    parser = LinkExtractor()
+    parser.feed(html_content)
+    return parser.links
 
 
 def validate_internal_links(links: list[str], output_dir: Path) -> tuple[bool, set[str]]:
