@@ -498,22 +498,16 @@ class TestValidateFileSizeEdgeCases:
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
 
-        # Create a mock that allows exists() but fails on second stat() call
-        call_count = [0]
-
-        def stat_side_effect(*args, **kwargs):
-            call_count[0] += 1
-            if call_count[0] == 1:
-                # First call from exists() - return normally
-                import os
-
-                return os.stat(test_file)
-            # Second call for size check - raise OSError
-            msg = "Cannot read file stats"
-            raise OSError(msg)
-
-        # Mock stat to raise OSError on second call
-        with patch.object(Path, "stat", side_effect=stat_side_effect):
+        # Mock exists() to return True and stat() to raise OSError
+        # This ensures exists check passes but stat fails
+        with (
+            patch.object(type(test_file), "exists", return_value=True),
+            patch.object(
+                type(test_file),
+                "stat",
+                side_effect=OSError("Cannot read file stats"),
+            ),
+        ):
             # Execute & Assert
             with pytest.raises(ValueError, match="Cannot read file size"):
                 validate_file_size(test_file)
