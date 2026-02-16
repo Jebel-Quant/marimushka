@@ -99,4 +99,3 @@ cython_debug/
 # Makefile
 local.mk
 
-_site/
