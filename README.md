@@ -127,8 +127,8 @@ your-project/
 ├── notebooks/       # Static marimo notebooks (.py files)
 ├── notebooks_wasm/  # Interactive marimo notebooks (.py files)
 ├── apps/            # Marimo applications (.py files)
-└── templates/       # Optional: Custom templates for export
-    └── custom.html.j2   # Default template location
+└── custom-templates/  # Optional: Custom templates for export
+    └── custom.html.j2   # Your custom template
 ```
 
 ### Marimo Notebook Requirements
@@ -528,7 +528,7 @@ Marimushka has comprehensive documentation to help you get the most out of it:
 ### Configuration
 
 - **[.marimushka.toml.example](.marimushka.toml.example)** - Configuration file example
-- **[templates/README.md](templates/README.md)** - Template customization guide
+- **[src/marimushka/templates/README.md](src/marimushka/templates/README.md)** - Template customization guide
 
 ### Security & Contributing
 
@@ -547,7 +547,7 @@ Marimushka has comprehensive documentation to help you get the most out of it:
 | Upgrade versions | [MIGRATION.md](docs/MIGRATION.md) |
 | Use the Python API | [API.md](API.md) |
 | Deploy to GitHub Pages | [README.md - GitHub Action](#github-action) |
-| Customize templates | [templates/README.md](templates/README.md) |
+| Customize templates | [src/marimushka/templates/README.md](src/marimushka/templates/README.md) |
 | Report a security issue | [SECURITY.md](SECURITY.md#reporting-a-vulnerability) |
 | Contribute | [CONTRIBUTING.md](CONTRIBUTING.md) |
 

@@ -523,6 +523,7 @@ class TestMain:
             parallel=True,
             max_workers=4,
             timeout=300,
+            on_progress=None,
             audit_logger=ANY,  # audit_logger is created internally
         )
 

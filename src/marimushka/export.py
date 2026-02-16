@@ -18,6 +18,7 @@ from loguru import logger
 
 from . import __version__
 from .audit import get_audit_logger
+from .exceptions import ProgressCallback
 from .notebook import Kind, folder2notebooks
 from .orchestrator import generate_index
 from .validators import validate_template
@@ -34,6 +35,7 @@ def main(
     parallel: bool = True,
     max_workers: int = 4,
     timeout: int = 300,
+    on_progress: ProgressCallback | None = None,
 ) -> str:
     """Export marimo notebooks and generate an index page.
 
@@ -48,6 +50,8 @@ def main(
         parallel: Whether to export notebooks in parallel. Defaults to True.
         max_workers: Maximum number of parallel workers. Defaults to 4.
         timeout: Maximum time in seconds for each export. Defaults to 300.
+        on_progress: Optional callback for progress tracking. Called after each notebook export
+                    with signature: on_progress(completed, total, notebook_name).
 
     Returns:
         Rendered HTML content as string, empty if no notebooks found.
@@ -57,6 +61,18 @@ def main(
         TemplateInvalidError: If the template path is not a file.
         TemplateRenderError: If the template fails to render.
         IndexWriteError: If the index file cannot be written.
+
+    Example:
+        >>> from marimushka.export import main
+        >>>
+        >>> # Simple usage
+        >>> main(notebooks="my-notebooks", apps="my-apps")
+        >>>
+        >>> # With progress callback
+        >>> def progress_handler(completed, total, name):
+        ...     print(f"[{completed}/{total}] Exported {name}")
+        >>>
+        >>> main(notebooks="my-notebooks", on_progress=progress_handler)
 
     """
     logger.info("Starting marimushka build process")
@@ -111,5 +127,6 @@ def main(
         parallel=parallel,
         max_workers=max_workers,
         timeout=timeout,
+        on_progress=on_progress,
         audit_logger=audit_logger,
     )
