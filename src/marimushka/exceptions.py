@@ -9,7 +9,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-
 # Progress callback type for API users
 # Called with (completed: int, total: int, notebook_name: str)
 ProgressCallback = Callable[[int, int, str], None]

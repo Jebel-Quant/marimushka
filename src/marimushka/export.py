@@ -18,10 +18,10 @@ from loguru import logger
 
 from . import __version__
 from .audit import get_audit_logger
+from .exceptions import ProgressCallback
 from .notebook import Kind, folder2notebooks
 from .orchestrator import generate_index
 from .validators import validate_template
-from .exceptions import ProgressCallback
 
 
 def main(

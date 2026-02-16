@@ -23,17 +23,17 @@ logger.remove()
 
 def configure_logging(debug: bool = False) -> None:
     """Configure logging based on debug mode.
-    
+
     Args:
         debug: Whether to enable debug mode.
-    
+
     """
     global _debug_mode
     _debug_mode = debug
-    
+
     # Remove existing handlers
     logger.remove()
-    
+
     if debug:
         # Debug mode: show all logs including DEBUG level
         logger.add(
@@ -129,14 +129,14 @@ def export_command(
 
         # Use custom template
         $ marimushka export -t my_template.html.j2
-        
+
         # Enable debug mode for troubleshooting
         $ marimushka export --debug
 
     """
     # Configure logging based on debug flag
     configure_logging(debug=debug)
-    
+
     from .export import main
 
     main(
@@ -180,20 +180,20 @@ def watch_command(
     automatically re-exporting when files are modified.
 
     Requires the 'watchfiles' package: uv add watchfiles
-    
+
     Example usage:
         # Basic watch mode
         $ marimushka watch
 
         # Watch with custom directories
         $ marimushka watch -n my_notebooks -a my_apps
-        
+
         # Watch with debug logging
         $ marimushka watch --debug
     """
     # Configure logging based on debug flag
     configure_logging(debug=debug)
-    
+
     try:
         from watchfiles import watch as watchfiles_watch
     except ImportError:  # pragma: no cover

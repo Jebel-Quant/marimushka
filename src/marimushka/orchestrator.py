@@ -343,6 +343,8 @@ def generate_index(
         parallel: Whether to export notebooks in parallel. Defaults to True.
         max_workers: Maximum number of parallel workers. Defaults to 4.
         timeout: Maximum time in seconds for each export. Defaults to 300.
+        on_progress: Optional callback called after each notebook export.
+            Signature: on_progress(completed, total, notebook_name).
         audit_logger: Logger for audit events. If None, creates a default logger.
 
     Returns:
