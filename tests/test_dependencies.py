@@ -189,7 +189,7 @@ audit_log = "config_audit.log"
         config_file = tmp_path / "invalid.toml"
         config_file.write_text("this is not valid TOML [[[")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r".*"):
             create_dependencies_from_config_file(config_file)
 
 
@@ -226,7 +226,7 @@ class TestDependenciesIntegration:
 
         # Create custom dependencies
         audit_log = tmp_path / "export_audit.log"
-        deps = create_dependencies(audit_log=audit_log)
+        create_dependencies(audit_log=audit_log)
 
         # Use with main (pass audit_logger explicitly)
         # Note: main doesn't accept deps directly, but we can pass components

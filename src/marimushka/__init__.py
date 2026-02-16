@@ -73,9 +73,6 @@ __all__ = [
     "BatchExportResult",
     # Dependency injection
     "Dependencies",
-    "create_dependencies",
-    "create_dependencies_from_config_file",
-    "create_test_dependencies",
     # Export exceptions
     "ExportError",
     "ExportExecutableNotFoundError",
@@ -99,4 +96,7 @@ __all__ = [
     "TemplateNotFoundError",
     "TemplateRenderError",
     "__version__",
+    "create_dependencies",
+    "create_dependencies_from_config_file",
+    "create_test_dependencies",
 ]

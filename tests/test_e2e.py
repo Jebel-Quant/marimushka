@@ -6,7 +6,6 @@ watch mode simulation, custom templates, and debug output.
 """
 
 import time
-from pathlib import Path
 
 import pytest
 
@@ -126,10 +125,9 @@ class TestWatchModeSimulation:
         )
         assert html1
 
-        # Get initial timestamp
+        # Verify initial export
         exported_file = output_dir / "notebooks" / "test_notebook.html"
         assert exported_file.exists()
-        initial_mtime = exported_file.stat().st_mtime
 
         # Step 2: Simulate file modification (add a comment)
         time.sleep(0.1)  # Ensure timestamp difference
@@ -145,10 +143,7 @@ class TestWatchModeSimulation:
         assert html2
 
         # Step 4: Verify re-export updated the file
-        new_mtime = exported_file.stat().st_mtime
-        # The file should have been re-created (mtime changed)
-        # Note: This test verifies the export process works, actual mtime
-        # comparison may vary by filesystem precision
+        # The file should have been re-created
         assert exported_file.exists()
 
     def test_add_new_notebook_reexport(self, resource_dir, tmp_path):
@@ -166,7 +161,7 @@ class TestWatchModeSimulation:
         output_dir = tmp_path / "output"
 
         # Initial export with 1 notebook
-        html1 = main(
+        main(
             notebooks=notebook_dir,
             template=resource_dir / "templates" / "tailwind.html.j2",
             output=output_dir,
@@ -179,7 +174,7 @@ class TestWatchModeSimulation:
         (notebook_dir / "notebook2.py").write_text(source_nb.read_text())
 
         # Re-export with 2 notebooks
-        html2 = main(
+        main(
             notebooks=notebook_dir,
             template=resource_dir / "templates" / "tailwind.html.j2",
             output=output_dir,
@@ -285,15 +280,12 @@ class TestProgressCallbackWorkflow:
         progress_log = []
 
         def track_progress(completed: int, total: int, name: str) -> None:
-            progress_log.append({
-                "completed": completed,
-                "total": total,
-                "name": name,
-                "percentage": (completed / total) * 100
-            })
+            progress_log.append(
+                {"completed": completed, "total": total, "name": name, "percentage": (completed / total) * 100}
+            )
 
         # Export with progress tracking
-        html = main(
+        main(
             notebooks=resource_dir / "marimo" / "notebooks",
             apps=resource_dir / "marimo" / "apps",
             template=resource_dir / "templates" / "tailwind.html.j2",
@@ -321,7 +313,7 @@ class TestProgressCallbackWorkflow:
         def callback(completed: int, total: int, name: str) -> None:
             progress_calls.append(name)
 
-        html = main(
+        main(
             notebooks=resource_dir / "marimo" / "notebooks",
             template=resource_dir / "templates" / "tailwind.html.j2",
             output=tmp_path / "output",
@@ -377,7 +369,7 @@ class TestDebugModeWorkflow:
     def test_export_failure_audit_logging(self, tmp_path):
         """Test that export failures are logged in audit log."""
         from marimushka.audit import AuditLogger
-        from marimushka.notebook import Notebook, Kind
+        from marimushka.notebook import Kind, Notebook
 
         audit_log_file = tmp_path / "audit.log"
         audit_logger = AuditLogger(log_file=audit_log_file)
@@ -392,7 +384,7 @@ class TestDebugModeWorkflow:
         nb = Notebook(fake_notebook, Kind.NB)
 
         # Try to export (may fail depending on marimo installation)
-        result = nb.export(
+        nb.export(
             output_dir=tmp_path / "output",
             audit_logger=audit_logger,
         )

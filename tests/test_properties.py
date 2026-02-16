@@ -133,10 +133,8 @@ class TestNotebookExportProperties:
     @settings(max_examples=50)
     def test_notebook_path_with_various_names(self, filename: str) -> None:
         """Test that notebook paths handle various valid filenames."""
-        from marimushka.notebook import Notebook
-
         # Create a valid path structure
-        nb_path = Path(f"{filename}.py")
+        Path(f"{filename}.py")
         # Notebook should have a consistent display name
         expected_display = filename.replace("_", " ")
 
@@ -324,7 +322,7 @@ class TestTemplateRenderingProperties:
     @settings(max_examples=30)
     def test_template_with_varying_notebook_counts(self, count: int) -> None:
         """Test that template rendering handles varying notebook counts."""
-        from marimushka.notebook import Kind, Notebook
+        from marimushka.notebook import Notebook
 
         # Create lists of varying sizes
         # We can't actually create real notebooks, but we can test the logic

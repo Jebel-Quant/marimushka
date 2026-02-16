@@ -5,16 +5,14 @@ including the export workflow, template rendering, progress callbacks, and
 debug mode logging.
 """
 
-import shutil
 from pathlib import Path
 
 import pytest
 
 from marimushka.audit import AuditLogger
 from marimushka.config import MarimushkaConfig
-from marimushka.exceptions import BatchExportResult, ProgressCallback
 from marimushka.export import main
-from marimushka.notebook import Kind, Notebook, folder2notebooks
+from marimushka.notebook import Kind, folder2notebooks
 from marimushka.orchestrator import (
     export_all_notebooks,
     export_notebooks_parallel,
@@ -192,7 +190,7 @@ class TestProgressCallbackIntegration:
             progress_calls.append({"completed": completed, "total": total, "name": name})
 
         # Export with callback
-        result = export_notebooks_parallel(
+        export_notebooks_parallel(
             notebooks=notebooks,
             output_dir=tmp_path / "notebooks",
             sandbox=True,
@@ -220,7 +218,7 @@ class TestProgressCallbackIntegration:
             progress_calls.append({"completed": completed, "total": total, "name": name})
 
         # Export with callback
-        result = export_notebooks_sequential(
+        export_notebooks_sequential(
             notebooks=notebooks,
             output_dir=tmp_path / "notebooks",
             sandbox=True,
@@ -250,7 +248,7 @@ class TestProgressCallbackIntegration:
             progress_calls.append({"completed": completed, "total": total})
 
         # Export all
-        result = export_all_notebooks(
+        export_all_notebooks(
             output=tmp_path,
             notebooks=notebooks,
             apps=apps,
