@@ -42,6 +42,12 @@ Exports:
 
 import importlib.metadata
 
+from .dependencies import (
+    Dependencies,
+    create_dependencies,
+    create_dependencies_from_config_file,
+    create_test_dependencies,
+)
 from .exceptions import (
     BatchExportResult,
     ExportError,
@@ -65,6 +71,11 @@ __version__ = importlib.metadata.version("marimushka")
 
 __all__ = [
     "BatchExportResult",
+    # Dependency injection
+    "Dependencies",
+    "create_dependencies",
+    "create_dependencies_from_config_file",
+    "create_test_dependencies",
     # Export exceptions
     "ExportError",
     "ExportExecutableNotFoundError",
