@@ -1,5 +1,7 @@
 """Tests for the security module."""
 
+from pathlib import Path
+
 import pytest
 
 from marimushka.security import (
@@ -411,3 +413,153 @@ class TestSetSecureFilePermissions:
         # Execute & Assert
         with pytest.raises(ValueError, match="File does not exist"):
             set_secure_file_permissions(test_file)
+
+    def test_set_secure_file_permissions_oserror(self, tmp_path):
+        """Test setting permissions handles OSError."""
+        # Setup
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+
+        # Mock os.chmod to raise OSError
+        from unittest.mock import patch
+
+        with patch("os.chmod", side_effect=OSError("Permission denied")):
+            # Execute & Assert
+            with pytest.raises(ValueError, match="Cannot set permissions"):
+                set_secure_file_permissions(test_file)
+
+
+class TestValidatePathTraversalEdgeCases:
+    """Tests for edge cases in validate_path_traversal."""
+
+    def test_validate_path_traversal_oserror_on_path(self, tmp_path):
+        """Test path resolution handles OSError on path."""
+        # Setup
+        from unittest.mock import MagicMock
+
+        mock_path = MagicMock(spec=Path)
+        mock_path.resolve.side_effect = OSError("Cannot resolve path")
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="Invalid path"):
+            validate_path_traversal(mock_path)
+
+    def test_validate_path_traversal_runtimeerror_on_path(self, tmp_path):
+        """Test path resolution handles RuntimeError on path."""
+        # Setup
+        from unittest.mock import MagicMock
+
+        mock_path = MagicMock(spec=Path)
+        mock_path.resolve.side_effect = RuntimeError("Circular symlink")
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="Invalid path"):
+            validate_path_traversal(mock_path)
+
+    def test_validate_path_traversal_oserror_on_base_dir(self, tmp_path):
+        """Test path resolution handles OSError on base_dir."""
+        # Setup
+        from unittest.mock import MagicMock
+
+        safe_path = tmp_path / "test.txt"
+        safe_path.touch()
+
+        mock_base = MagicMock(spec=Path)
+        mock_base.resolve.side_effect = OSError("Cannot resolve base")
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="Invalid base directory"):
+            validate_path_traversal(safe_path, mock_base)
+
+    def test_validate_path_traversal_runtimeerror_on_base_dir(self, tmp_path):
+        """Test path resolution handles RuntimeError on base_dir."""
+        # Setup
+        from unittest.mock import MagicMock
+
+        safe_path = tmp_path / "test.txt"
+        safe_path.touch()
+
+        mock_base = MagicMock(spec=Path)
+        mock_base.resolve.side_effect = RuntimeError("Circular symlink in base")
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="Invalid base directory"):
+            validate_path_traversal(safe_path, mock_base)
+
+
+class TestValidateFileSizeEdgeCases:
+    """Tests for edge cases in validate_file_size."""
+
+    def test_validate_file_size_oserror(self, tmp_path):
+        """Test validate_file_size handles OSError when reading file size."""
+        # Setup
+        from unittest.mock import patch
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+
+        # Mock exists() to return True and stat() to raise OSError
+        # This ensures exists check passes but stat fails
+        with (
+            patch.object(type(test_file), "exists", return_value=True),
+            patch.object(
+                type(test_file),
+                "stat",
+                side_effect=OSError("Cannot read file stats"),
+            ),
+        ):
+            # Execute & Assert
+            with pytest.raises(ValueError, match="Cannot read file size"):
+                validate_file_size(test_file)
+
+
+class TestSafeOpenFileEdgeCases:
+    """Tests for edge cases in safe_open_file."""
+
+    def test_safe_open_file_read_nonexistent(self, tmp_path):
+        """Test safe_open_file raises error for non-existent file in read mode."""
+        # Setup
+        test_file = tmp_path / "nonexistent.txt"
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="File does not exist"):
+            safe_open_file(test_file, "r")
+
+    def test_safe_open_file_append_mode(self, tmp_path):
+        """Test safe_open_file works with append mode."""
+        # Setup
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("initial")
+
+        # Execute
+        import os
+
+        fd = safe_open_file(test_file, "a")
+        with os.fdopen(fd, "a") as f:
+            f.write(" appended")
+
+        # Assert
+        assert test_file.read_text() == "initial appended"
+
+    def test_safe_open_file_unsupported_mode(self, tmp_path):
+        """Test safe_open_file raises error for unsupported mode."""
+        # Setup
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+
+        # Execute & Assert
+        with pytest.raises(ValueError, match="Unsupported mode"):
+            safe_open_file(test_file, "rb")
+
+    def test_safe_open_file_oserror_on_open(self, tmp_path):
+        """Test safe_open_file handles OSError when opening file."""
+        # Setup
+        from unittest.mock import patch
+
+        test_file = tmp_path / "test.txt"
+
+        # Mock os.open to raise OSError
+        with patch("os.open", side_effect=OSError("Cannot open file")):
+            # Execute & Assert
+            with pytest.raises(ValueError, match="Cannot open file"):
+                safe_open_file(test_file, "w")

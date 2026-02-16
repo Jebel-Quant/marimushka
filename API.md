@@ -28,6 +28,346 @@ main(
 )
 ```
 
+## Dependency Injection
+
+Marimushka uses dependency injection to make testing easier and allow customization of core components. This section explains how to use the dependency injection system.
+
+### Overview
+
+The dependency injection container (`Dependencies`) encapsulates injectable components:
+
+- `audit_logger`: Logs security-relevant events (path validation, exports, template rendering)
+- `config`: Configuration settings (output paths, worker counts, timeouts, security settings)
+
+### Basic Usage
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_dependencies
+from marimushka.orchestrator import generate_index
+from marimushka.notebook import folder2notebooks, Kind
+
+# Create dependencies with defaults
+deps = create_dependencies()
+
+# Use with lower-level functions
+notebooks = folder2notebooks("notebooks", Kind.NB)
+html = generate_index(
+    output=Path("_site"),
+    template_file=Path("template.html.j2"),
+    notebooks=notebooks,
+    audit_logger=deps.audit_logger  # Inject audit logger
+)
+```
+
+### Custom Audit Logging
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_dependencies
+from marimushka.audit import AuditLogger
+from marimushka.orchestrator import generate_index
+
+# Create dependencies with custom audit log file
+deps = create_dependencies(audit_log=Path("custom_audit.log"))
+
+# Or create custom audit logger
+custom_logger = AuditLogger(
+    enabled=True,
+    log_file=Path("security_audit.log")
+)
+deps = deps.with_audit_logger(custom_logger)
+
+# Use in export
+html = generate_index(
+    ...,
+    audit_logger=deps.audit_logger
+)
+
+# Audit log contains JSON entries for all security events
+# Example log entry:
+# {"timestamp": "2025-01-20T10:30:45Z", "event_type": "export", "success": true, ...}
+```
+
+### Configuration-Based Dependencies
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_dependencies_from_config_file
+from marimushka.config import MarimushkaConfig
+from marimushka.export import main
+
+# Load from TOML config file
+deps = create_dependencies_from_config_file(Path(".marimushka.toml"))
+
+# Use configuration
+html = main(
+    output=deps.config.output,
+    notebooks=deps.config.notebooks,
+    apps=deps.config.apps,
+    max_workers=deps.config.max_workers,
+    timeout=deps.config.timeout
+)
+
+# Or create custom config
+config = MarimushkaConfig(
+    output="_site",
+    notebooks="notebooks",
+    apps="apps",
+    max_workers=8,
+    timeout=600,
+    parallel=True,
+    sandbox=True
+)
+deps = create_dependencies(config=config)
+```
+
+### Testing with Dependencies
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_test_dependencies
+
+def test_export(tmp_path):
+    """Test export with isolated dependencies."""
+    # Create test dependencies with audit logging to temp dir
+    deps = create_test_dependencies(tmp_path)
+
+    # Use in test
+    from marimushka.orchestrator import generate_index
+    html = generate_index(
+        output=tmp_path / "output",
+        template_file=Path("template.html.j2"),
+        notebooks=[],
+        audit_logger=deps.audit_logger
+    )
+
+    # Verify audit log was created
+    audit_log = tmp_path / "test_audit.log"
+    assert audit_log.exists()
+```
+
+### Immutable Updates
+
+The `Dependencies` class supports immutable updates:
+
+```python
+from marimushka.dependencies import Dependencies
+from marimushka.audit import AuditLogger
+from marimushka.config import MarimushkaConfig
+
+# Create base dependencies
+deps = Dependencies()
+
+# Create new instance with different audit logger
+new_logger = AuditLogger(log_file=Path("new_audit.log"))
+new_deps = deps.with_audit_logger(new_logger)
+
+# Original unchanged
+assert deps.audit_logger != new_logger
+assert new_deps.audit_logger == new_logger
+
+# Create new instance with different config
+new_config = MarimushkaConfig(max_workers=16)
+final_deps = new_deps.with_config(new_config)
+```
+
+### Factory Functions
+
+Marimushka provides several factory functions for creating dependencies:
+
+#### `create_dependencies()`
+
+Creates dependencies with optional customization:
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_dependencies
+from marimushka.config import MarimushkaConfig
+
+# Simplest: all defaults
+deps = create_dependencies()
+
+# With audit log file
+deps = create_dependencies(audit_log=Path("audit.log"))
+
+# With custom config
+config = MarimushkaConfig(max_workers=8, timeout=900)
+deps = create_dependencies(config=config)
+
+# With both
+deps = create_dependencies(
+    audit_log=Path("audit.log"),
+    config=MarimushkaConfig(parallel=True, max_workers=16)
+)
+```
+
+#### `create_dependencies_from_config_file()`
+
+Loads configuration from TOML file:
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_dependencies_from_config_file
+
+# Load from config file
+deps = create_dependencies_from_config_file(Path(".marimushka.toml"))
+
+# Override audit log path
+deps = create_dependencies_from_config_file(
+    config_path=Path(".marimushka.toml"),
+    audit_log=Path("custom_audit.log")
+)
+```
+
+Example `.marimushka.toml`:
+
+```toml
+[marimushka]
+output = "_site"
+notebooks = "notebooks"
+apps = "apps"
+notebooks_wasm = "notebooks_wasm"
+max_workers = 8
+timeout = 600
+parallel = true
+sandbox = true
+
+[marimushka.security]
+audit_enabled = true
+audit_log = "audit.log"
+max_file_size_mb = 10
+file_permissions = "0o644"
+```
+
+#### `create_test_dependencies()`
+
+Creates dependencies suitable for testing:
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_test_dependencies
+
+def test_something(tmp_path):
+    # Creates audit logger in tmp_path/test_audit.log
+    deps = create_test_dependencies(tmp_path)
+
+    # Use deps in test...
+    assert deps.audit_logger.log_file == tmp_path / "test_audit.log"
+    assert deps.config.max_workers == 4  # Default config
+```
+
+### Integration with Lower-Level Functions
+
+Most lower-level functions accept optional `audit_logger` parameter:
+
+```python
+from marimushka.dependencies import create_dependencies
+from marimushka.orchestrator import (
+    generate_index,
+    render_template,
+    write_index_file
+)
+from marimushka.validators import validate_template
+from marimushka.notebook import Notebook
+
+# Create dependencies
+deps = create_dependencies()
+
+# Validate template with audit logging
+validate_template(template_path, deps.audit_logger)
+
+# Render template with audit logging
+html = render_template(
+    template_file,
+    notebooks,
+    apps,
+    notebooks_wasm,
+    deps.audit_logger
+)
+
+# Write index with audit logging
+write_index_file(index_path, html, deps.audit_logger)
+
+# Export notebook with audit logging
+notebook = Notebook(notebook_path)
+result = notebook.export(
+    output_dir=output_dir,
+    audit_logger=deps.audit_logger
+)
+```
+
+### Best Practices
+
+1. **Use factory functions**: Prefer `create_dependencies()` over direct construction
+2. **Inject explicitly**: Pass dependencies to functions rather than using globals
+3. **Test with isolation**: Use `create_test_dependencies()` for test isolation
+4. **Immutable updates**: Use `with_*()` methods instead of modifying in place
+5. **Configuration files**: Use `.marimushka.toml` for project-level settings
+6. **Audit logging**: Enable audit logging in production for security monitoring
+
+### Example: Custom Export Pipeline
+
+```python
+from pathlib import Path
+from marimushka.dependencies import create_dependencies
+from marimushka.config import MarimushkaConfig
+from marimushka.audit import AuditLogger
+from marimushka.notebook import folder2notebooks, Kind
+from marimushka.orchestrator import generate_index
+
+# Step 1: Create custom configuration
+config = MarimushkaConfig(
+    output="_site",
+    notebooks="notebooks",
+    apps="apps",
+    max_workers=8,
+    timeout=900,
+    parallel=True,
+    sandbox=True,
+    audit_enabled=True
+)
+
+# Step 2: Create custom audit logger
+audit_logger = AuditLogger(
+    enabled=True,
+    log_file=Path("production_audit.log")
+)
+
+# Step 3: Create dependencies
+deps = create_dependencies(config=config)
+deps = deps.with_audit_logger(audit_logger)
+
+# Step 4: Discover notebooks
+notebooks = folder2notebooks(config.notebooks, Kind.NB)
+apps = folder2notebooks(config.apps, Kind.APP)
+notebooks_wasm = folder2notebooks(config.notebooks_wasm, Kind.NB_WASM)
+
+# Step 5: Generate index with dependency injection
+html = generate_index(
+    output=Path(config.output),
+    template_file=Path("templates/custom.html.j2"),
+    notebooks=notebooks,
+    apps=apps,
+    notebooks_wasm=notebooks_wasm,
+    sandbox=config.sandbox,
+    parallel=config.parallel,
+    max_workers=config.max_workers,
+    timeout=config.timeout,
+    audit_logger=deps.audit_logger
+)
+
+print(f"Exported {len(notebooks)} notebooks")
+print(f"Audit log: {audit_logger.log_file}")
+```
+
+### See Also
+
+- [ADR-001: Module Structure Refactoring](docs/adr/ADR-001-module-structure-refactoring.md) - Architecture decisions
+- [`Dependencies` class documentation](src/marimushka/dependencies.py) - Full API reference
+- [`AuditLogger` class documentation](src/marimushka/audit.py) - Audit logging details
+- [`MarimushkaConfig` class documentation](src/marimushka/config.py) - Configuration options
+
 ## Module Reference
 
 ### `marimushka.export`

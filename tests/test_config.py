@@ -145,3 +145,15 @@ output = "custom_site"
         assert config_dict["max_workers"] == 8
         assert config_dict["security"]["audit_log"] == "audit.log"
         assert "0o644" in config_dict["security"]["file_permissions"]
+
+    def test_from_file_or_defaults_with_explicit_nonexistent_path(self, tmp_path):
+        """Test loading config with explicit non-existent path uses defaults."""
+        # Setup
+        config_file = tmp_path / "nonexistent.toml"
+
+        # Execute - pass explicit path that doesn't exist
+        config = MarimushkaConfig.from_file_or_defaults(config_file)
+
+        # Assert - should use defaults since file doesn't exist
+        assert config.output == "_site"  # Default value
+        assert config.max_workers == 4  # Default value
