@@ -150,6 +150,51 @@ class TestValidateTemplate:
         # The warning is logged via loguru, which doesn't use caplog
         # Just verify no exception was raised
 
+    def test_validate_template_path_traversal(self, tmp_path):
+        """Test template validation detects path traversal."""
+        # Setup
+        base_dir = tmp_path / "base"
+        base_dir.mkdir()
+        template_file = tmp_path / "base" / "templates" / "template.html.j2"
+        template_file.parent.mkdir(parents=True)
+        template_file.write_text("<html></html>")
+
+        # Create a path that tries to escape
+        base_dir / ".." / ".." / "etc" / "passwd.j2"
+
+        # Mock validate_path_traversal to raise ValueError
+        with patch("marimushka.validators.validate_path_traversal", side_effect=ValueError("path traversal detected")):
+            # Execute and Assert
+            with pytest.raises(TemplateInvalidError) as exc_info:
+                validate_template(template_file, get_audit_logger())
+            assert "path traversal detected" in exc_info.value.reason
+
+    def test_validate_template_oserror(self, tmp_path):
+        """Test template validation handles OSError when accessing file."""
+        # Setup
+        template_file = tmp_path / "template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Mock stat to raise OSError (e.g., permission denied)
+        with patch.object(Path, "stat", side_effect=OSError("Permission denied")):
+            # Execute and Assert
+            with pytest.raises(TemplateInvalidError) as exc_info:
+                validate_template(template_file, get_audit_logger())
+            assert "cannot access file" in exc_info.value.reason
+
+    def test_validate_template_file_size_exceeded(self, tmp_path):
+        """Test template validation detects file size limit exceeded."""
+        # Setup
+        template_file = tmp_path / "large_template.html.j2"
+        template_file.write_text("<html></html>")
+
+        # Mock validate_file_size to raise ValueError
+        with patch("marimushka.validators.validate_file_size", side_effect=ValueError("File size exceeds limit")):
+            # Execute and Assert
+            with pytest.raises(TemplateInvalidError) as exc_info:
+                validate_template(template_file, get_audit_logger())
+            assert "file size limit exceeded" in exc_info.value.reason
+
 
 class TestExportNotebook:
     """Tests for the _export_notebook function."""
