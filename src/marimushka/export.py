@@ -62,17 +62,18 @@ def main(
         TemplateRenderError: If the template fails to render.
         IndexWriteError: If the index file cannot be written.
 
-    Example:
-        >>> from marimushka.export import main
-        >>>
-        >>> # Simple usage
-        >>> main(notebooks="my-notebooks", apps="my-apps")
-        >>>
-        >>> # With progress callback
-        >>> def progress_handler(completed, total, name):
-        ...     print(f"[{completed}/{total}] Exported {name}")
-        >>>
-        >>> main(notebooks="my-notebooks", on_progress=progress_handler)
+    Example::
+
+        from marimushka.export import main
+
+        # Simple usage
+        main(notebooks="my-notebooks", apps="my-apps")
+
+        # With progress callback
+        def progress_handler(completed, total, name):
+            print(f"[{completed}/{total}] Exported {name}")
+
+        main(notebooks="my-notebooks", on_progress=progress_handler)
 
     """
     logger.info("Starting marimushka build process")
