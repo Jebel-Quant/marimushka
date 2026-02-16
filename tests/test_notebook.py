@@ -382,7 +382,7 @@ class TestNotebook:
     def test_export_bin_path_not_found(self, mock_which, mock_access, mock_validate, resource_dir, tmp_path):
         """Test export of a notebook when bin path executable is not found."""
         # Setup
-        notebook_path = resource_dir / "notebooks" / "fibonacci.py"
+        notebook_path = resource_dir / "marimo" / "notebooks" / "fibonacci.py"
         output_dir = tmp_path
         bin_path = tmp_path / "bin"
         bin_path.mkdir()
@@ -394,22 +394,17 @@ class TestNotebook:
         # Mock os.access to return False (executable is not accessible)
         mock_access.return_value = False
 
-        # Create a notebook with mocked path validation
-        with (
-            patch.object(Path, "exists", return_value=True),
-            patch.object(Path, "is_file", return_value=True),
-            patch.object(Path, "suffix", ".py"),
-        ):
-            notebook = Notebook(notebook_path, kind=Kind.NB)
+        # Create a notebook
+        notebook = Notebook(notebook_path, kind=Kind.NB)
 
-            # Execute
-            result = notebook.export(output_dir, bin_path=bin_path)
+        # Execute - the exe_path won't exist so is_file will naturally return False
+        result = notebook.export(output_dir, bin_path=bin_path)
 
-            # Assert
-            assert result.success is False
-            assert result.error is not None
-            assert isinstance(result.error, ExportExecutableNotFoundError)
-            assert result.error.search_path == bin_path
+        # Assert - should hit the error path lines 291-294
+        assert result.success is False
+        assert result.error is not None
+        assert isinstance(result.error, ExportExecutableNotFoundError)
+        assert result.error.search_path == bin_path
 
     @patch("subprocess.run")
     def test_export_nonzero_returncode(self, mock_run, resource_dir, tmp_path):
