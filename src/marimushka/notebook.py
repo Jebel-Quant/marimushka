@@ -448,17 +448,18 @@ class Notebook:
         underscores with spaces, making it more human-readable.
 
         Returns:
-            str: Human-friendly display name with underscores replaced by spaces.
+            str: Human-friendly display name with underscores replaced by spaces and
+                each word capitalized.
 
         Examples:
             >>> # Demonstrating the transformation logic
             >>> filename = "my_cool_notebook"
-            >>> display_name = filename.replace("_", " ")
+            >>> display_name = filename.replace("_", " ").title()
             >>> display_name
-            'my cool notebook'
+            'My Cool Notebook'
 
         """
-        return self.path.stem.replace("_", " ")
+        return self.path.stem.replace("_", " ").title()
 
     @property
     def html_path(self) -> Path:

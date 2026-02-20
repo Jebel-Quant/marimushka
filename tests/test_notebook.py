@@ -452,7 +452,7 @@ class TestNotebook:
             display_name = notebook.display_name
 
             # Assert
-            assert display_name == "fibonacci"
+            assert display_name == "Fibonacci"
 
     def test_display_name_with_underscores(self):
         """Test the display_name property with underscores in the filename."""
@@ -471,7 +471,7 @@ class TestNotebook:
             display_name = notebook.display_name
 
             # Assert
-            assert display_name == "my test notebook"
+            assert display_name == "My Test Notebook"
 
     def test_html_path(self, resource_dir):
         """Test the html_path property of the Notebook class."""
@@ -557,7 +557,7 @@ class TestNotebookHypothesis:
         ).filter(lambda x: x.strip() and not x.startswith("-"))
     )
     def test_display_name_replaces_underscores(self, stem: str):
-        """Test that display_name replaces all underscores with spaces."""
+        """Test that display_name replaces all underscores with spaces and title-cases the result."""
         notebook_path = Path(f"{stem}.py")
 
         with (
@@ -569,7 +569,7 @@ class TestNotebookHypothesis:
             display_name = notebook.display_name
 
             assert "_" not in display_name
-            assert display_name == stem.replace("_", " ")
+            assert display_name == stem.replace("_", " ").title()
 
     @given(
         stem=st.text(
