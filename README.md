@@ -52,7 +52,7 @@ with a web browser - no Python installation required!
 
 ## 📋 Requirements
 
-- Python 3.10+
+- Python 3.11+
 - [marimo](https://marimo.io) (installed automatically as a dependency)
 - [uvx](https://docs.astral.sh/uv/guides/tools/) (recommended to bypass installation)
 
