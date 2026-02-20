@@ -21,17 +21,54 @@ make clean      # Clean artifacts and stale branches
 
 ### Core Modules (`src/marimushka/`)
 
-- **`export.py`** - CLI entry point and export orchestration
-  - `cli()` → `app()` (Typer) → `main()` → `_main_impl()` → `_generate_index()`
-  - `_validate_template()`: Early path validation with clear errors
-  - `_export_notebooks_parallel()`: Parallel export using ThreadPoolExecutor
-  - Rich progress bar for visual feedback
-  - Default output: `_site/`
+**Call chain:** `cli.py` → `export.py` → `orchestrator.py` → `notebook.py`
+
+- **`cli.py`** - CLI entry point (Typer app)
+  - `cli()` → `app()` dispatches `export`, `watch`, `version` subcommands
+  - `configure_logging()`: sets up loguru based on `--debug` flag
+  - `watch_command()`: wraps `watchfiles` for auto re-export on file changes
+
+- **`export.py`** - Public Python API
+  - `main()`: validates template, scans notebook folders, calls `generate_index()`
+  - Entry point for programmatic use: `from marimushka.export import main`
+
+- **`orchestrator.py`** - Core export engine and template rendering
+  - `generate_index()`: top-level orchestrator; exports all notebooks then renders index
+  - `export_all_notebooks()`: dispatches to parallel or sequential path with Rich progress bar
+  - `export_notebooks_parallel()`: ThreadPoolExecutor-based parallel export
+  - `export_notebooks_sequential()`: single-threaded fallback
+  - `render_template()`: Jinja2 `SandboxedEnvironment` rendering
+  - `write_index_file()`: writes `index.html` with secure file permissions
 
 - **`notebook.py`** - Notebook abstraction
   - `Kind` enum: `NB` (static HTML), `NB_WASM` (interactive edit mode), `APP` (run mode, code hidden)
   - `Notebook` dataclass: handles export via `uvx marimo export` subprocess
   - `folder2notebooks()`: scans directories for `.py` files
+
+- **`validators.py`** - Input validation
+  - `validate_template()`: checks path traversal, file existence, type, and size (10 MB limit)
+
+- **`security.py`** - Security utilities
+  - `validate_path_traversal()`, `validate_file_size()`, `validate_max_workers()`
+  - `sanitize_error_message()`: redacts paths from error output
+  - `safe_open_file()`, `set_secure_file_permissions()`
+
+- **`audit.py`** - Structured audit logging
+  - `AuditLogger`: logs file access, template renders, export operations as JSON
+  - `get_audit_logger()`: factory returning a default logger instance
+
+- **`config.py`** - TOML configuration
+  - `MarimushkaConfig`: dataclass with all export options and sensible defaults
+  - Loads from `pyproject.toml` or a custom TOML file via `from_toml()`
+
+- **`dependencies.py`** - Dependency injection container
+  - `Dependencies` dataclass: bundles `AuditLogger` + `MarimushkaConfig`
+  - `create_dependencies()` / `create_test_dependencies()`: factory functions
+
+- **`exceptions.py`** - Exception hierarchy and result types
+  - `MarimushkaError` base class with specific subclasses (`TemplateNotFoundError`, `IndexWriteError`, etc.)
+  - `NotebookExportResult`, `BatchExportResult`: typed result containers
+  - `ProgressCallback`: type alias for progress hook `(completed, total, name) -> None`
 
 ### CLI Commands
 
