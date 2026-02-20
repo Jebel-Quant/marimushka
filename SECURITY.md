@@ -93,7 +93,6 @@ Jinja2 templates are rendered with enhanced security:
 - **DoS protections**: File size limits (10MB default), timeout enforcement, worker limits
 - **Error message sanitization**: Sensitive paths and data redacted from logs
 - **Audit logging**: Security-relevant events logged to structured audit log
-- **SRI (Subresource Integrity)**: CDN resources protected with integrity hashes
 - **Secure file permissions**: Output files created with restrictive permissions (0o644)
 - **Configuration file support**: Security settings configurable via .marimushka.toml
 
@@ -109,8 +108,7 @@ When using Marimushka:
 6. **Use whitelisted bin paths** in shared/multi-tenant environments
 7. **Enable audit logging** in production environments for security monitoring
 8. **Use configuration files** to standardize security settings across deployments
-9. **Keep SRI hashes updated** when using custom templates with CDN resources
-10. **Review audit logs** regularly for suspicious activity
+9. **Review audit logs** regularly for suspicious activity
 
 ## Configuration File
 

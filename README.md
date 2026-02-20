@@ -45,7 +45,6 @@ with a web browser - no Python installation required!
   - TOCTOU race condition prevention
   - DoS protections (file size limits, timeouts, worker bounds)
   - Error message sanitization
-  - Subresource Integrity (SRI) for CDN resources
   - Audit logging for security events
   - Secure file permissions
 

@@ -68,7 +68,6 @@ uvx marimushka watch
 - TOCTOU race condition prevention
 - DoS protections (file size limits, timeouts)
 - Audit logging support
-- SRI (Subresource Integrity) for CDN resources
 
 **Migration:**
 - Enable audit logging (optional):
