@@ -20,6 +20,8 @@ Export [marimo](https://marimo.io) notebooks in style.
 
 ## 🚀 Overview
 
+![Marimushka index page](docs/assets/screenshot.png)
+
 Marimushka is a powerful tool for exporting [marimo](https://marimo.io) notebooks
 to HTML/WebAssembly format with custom styling. It helps you create beautiful,
 interactive web versions of your marimo notebooks and applications that can be
