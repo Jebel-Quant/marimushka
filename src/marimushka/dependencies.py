@@ -163,10 +163,7 @@ def create_dependencies(
         )
 
     """
-    if audit_log is not None:
-        audit_logger = AuditLogger(log_file=audit_log)
-    else:
-        audit_logger = get_audit_logger()
+    audit_logger = AuditLogger(log_file=audit_log) if audit_log is not None else get_audit_logger()
 
     if config is None:
         config = MarimushkaConfig()

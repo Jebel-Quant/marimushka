@@ -423,10 +423,11 @@ class TestSetSecureFilePermissions:
         # Mock os.chmod to raise OSError
         from unittest.mock import patch
 
-        with patch("os.chmod", side_effect=OSError("Permission denied")):
-            # Execute & Assert
-            with pytest.raises(ValueError, match="Cannot set permissions"):
-                set_secure_file_permissions(test_file)
+        with (
+            patch("os.chmod", side_effect=OSError("Permission denied")),
+            pytest.raises(ValueError, match="Cannot set permissions"),
+        ):
+            set_secure_file_permissions(test_file)
 
 
 class TestValidatePathTraversalEdgeCases:
@@ -507,10 +508,9 @@ class TestValidateFileSizeEdgeCases:
                 "stat",
                 side_effect=OSError("Cannot read file stats"),
             ),
+            pytest.raises(ValueError, match="Cannot read file size"),
         ):
-            # Execute & Assert
-            with pytest.raises(ValueError, match="Cannot read file size"):
-                validate_file_size(test_file)
+            validate_file_size(test_file)
 
 
 class TestSafeOpenFileEdgeCases:
@@ -559,7 +559,8 @@ class TestSafeOpenFileEdgeCases:
         test_file = tmp_path / "test.txt"
 
         # Mock os.open to raise OSError
-        with patch("os.open", side_effect=OSError("Cannot open file")):
-            # Execute & Assert
-            with pytest.raises(ValueError, match="Cannot open file"):
-                safe_open_file(test_file, "w")
+        with (
+            patch("os.open", side_effect=OSError("Cannot open file")),
+            pytest.raises(ValueError, match="Cannot open file"),
+        ):
+            safe_open_file(test_file, "w")
