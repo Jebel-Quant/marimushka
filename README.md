@@ -1,7 +1,7 @@
 <div align="center">
   
 # <img src="https://raw.githubusercontent.com/Jebel-Quant/rhiza/main/.rhiza/assets/rhiza-logo.svg" alt="Rhiza Logo" width="30"> marimushka
-![Synced with Rhiza](https://img.shields.io/badge/synced%20with-rhiza-2FA4A9?color=2FA4A9)
+[![Rhiza](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FJebel-Quant%2Fmarimushka%2Fmain%2F.rhiza%2Ftemplate.yml&query=%24.ref&label=rhiza&color=2FA4A9)](https://github.com/jebel-quant/rhiza)
 
 [![PyPI version](https://img.shields.io/pypi/v/marimushka.svg)](https://pypi.org/project/marimushka/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
