@@ -3,13 +3,9 @@
 This module provides configuration loading and validation from TOML files.
 """
 
+import tomllib
 from pathlib import Path
 from typing import Any
-
-try:
-    import tomllib  # Python 3.11+
-except ModuleNotFoundError:  # pragma: no cover
-    import tomli as tomllib  # type: ignore[import-not-found,no-redef]
 
 
 class MarimushkaConfig:
