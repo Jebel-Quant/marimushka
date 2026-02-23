@@ -131,10 +131,9 @@ def validate_file_path(file_path: Path, allowed_extensions: list[str] | None = N
         raise ValueError(f"Path is not a file: {file_path}")  # noqa: TRY003
 
     # Check extension if whitelist provided
-    if allowed_extensions is not None:
-        if file_path.suffix not in allowed_extensions:
-            msg = f"File extension {file_path.suffix} not allowed. Allowed extensions: {', '.join(allowed_extensions)}"
-            raise ValueError(msg)
+    if allowed_extensions is not None and file_path.suffix not in allowed_extensions:
+        msg = f"File extension {file_path.suffix} not allowed. Allowed extensions: {', '.join(allowed_extensions)}"
+        raise ValueError(msg)
 
     return file_path
 
@@ -282,9 +281,8 @@ def safe_open_file(file_path: Path, mode: str = "r") -> int:
 
     """
     # Validate path first
-    if not file_path.exists():
-        if "w" not in mode and "a" not in mode:
-            raise ValueError(f"File does not exist: {file_path}")  # noqa: TRY003
+    if not file_path.exists() and "w" not in mode and "a" not in mode:
+        raise ValueError(f"File does not exist: {file_path}")  # noqa: TRY003
 
     # Check if it's a symlink (prevent symlink attacks)
     if file_path.exists() and file_path.is_symlink():
