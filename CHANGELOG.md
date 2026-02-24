@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.3.4] - 2026-02-24
+
+### Changed
+- **Dynamic Rhiza version badge**: Switched to a dynamic shields.io YAML badge for the Rhiza version in README
+- **Removed Mypy configuration**: Dropped Mypy from `pyproject.toml`; type checking is now handled by `ty`
+- **Cleaned up configuration**: Removed stale entries from `.cfg.toml`
+
+---
+
+## [0.3.3] - 2026-02-20
+
+### Fixed
+- **Inlined Tailwind CSS**: Eliminated the CDN dependency by bundling Tailwind styles directly in the default template
+  - Index page is now fully self-contained — no external network requests at render time
+  - Resolves the CDN availability and versioning issues introduced in 0.3.2
+
+### Changed
+- **README screenshots**: Added a screenshot of the generated index page for better documentation
+
+---
+
+## [0.3.2] - 2026-02-16
+
+### Fixed
+- **Tailwind CDN migration**: Migrated from the deprecated Tailwind v3 Play CDN to v4
+  - Fixes broken styling after the v3 CDN was retired
+  - Removed stale SRI hash from the Play CDN script tag
+
+---
+
+## [0.3.1] - 2026-02-07
+
+### Changed
+- **Orchestrator refactor**: Extracted helper functions from `_generate_index` to reduce complexity and improve readability
+
+### Fixed
+- **Test coverage**: Added tests for `_export_notebooks_sequential` to reach 100% branch coverage
+
+---
+
+## [0.3.0] - 2026-02-02
+
 ### Added
 
 #### Parallel Export (Performance Enhancement) 🚀
@@ -16,10 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Performance impact**: 3.75x faster for projects with 10+ notebooks
   - **Example**:
     ```bash
-    # Enable parallel export with 4 workers (default)
     uvx marimushka export --parallel --max-workers 4
-    
-    # Disable for sequential export
     uvx marimushka export --no-parallel
     ```
   - **API usage**:
@@ -27,104 +68,124 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     from marimushka.export import main
     main(parallel=True, max_workers=4)
     ```
-  - See: [Performance documentation](README.md#performance)
 
 #### Watch Mode 👁️
 - **Watch mode**: New `marimushka watch` command for automatic re-export on file changes
-  - **Requires**: `watchfiles` package (install with `uv add marimushka[watch]`)
-  - **Use case**: Development workflow with live preview
+  - **Requires**: `watchfiles` package (`uv add marimushka[watch]`)
   - **Example**:
     ```bash
-    # Watch for changes and auto-export
     uvx marimushka watch --notebooks notebooks --apps apps
     ```
   - See: [Watch mode documentation](API.md#watch-command)
 
-#### Enhanced User Experience 🎨
-- **Progress bar**: Rich progress bar shows export progress in the CLI with real-time updates
-  - Shows completed/total notebooks
-  - Displays percentage and time elapsed
+#### Progress Callback API
+- **Progress callbacks**: Programmatic progress reporting via `on_progress` callback
+  - **Example**:
+    ```python
+    from marimushka.export import main
+    main(on_progress=lambda completed, total, name: print(f"{completed}/{total}: {name}"))
+    ```
+
+#### Progress Bar 🎨
+- **Rich progress bar**: Shows real-time export progress in the CLI
+  - Displays completed/total count, percentage, and elapsed time
   - **Example output**:
     ```
     Exporting notebooks ━━━━━━━━━━━━━━━━━━━━━━ 10/10 100% 0:00:08
     ```
 
-#### Input Validation 🛡️
-- **Input validation**: Early validation of template paths with clear error messages
-  - Prevents cryptic Jinja2 errors
-  - **Example error**:
-    ```
-    Error: Template file not found: /path/to/missing.html.j2
-    Please check the path and try again.
-    ```
-
 #### CLI Options ⚙️
-- **CLI options**: New flags for controlling parallel execution
+- **New flags** for parallel execution control:
   - `--parallel/--no-parallel`: Enable/disable parallel export
   - `--max-workers <N>`: Set number of parallel workers (1-16, default: 4)
-  - **Example**:
-    ```bash
-    uvx marimushka export --parallel --max-workers 8
-    ```
+  - `--debug`: Enable verbose debug logging
 
 #### Optional Dependencies 📦
-- **Optional dependency**: `watchfiles` available as optional `[watch]` extra
+- **Optional dependency**: `watchfiles` available as `[watch]` extra
   - Install with: `uv add marimushka[watch]`
-  - Only required for watch mode functionality
 
 ### Changed
 
-#### Framework Updates 🔄
-- **Synced with Rhiza framework updates**: Improved development workflow and CI/CD integration
-  - Updated Makefile includes
-  - Better dependency management
-  - Enhanced testing infrastructure
-  - **Migration**: No action required for end users
+#### Architecture Refactor 🏗️
+- **Modular architecture**: Split the monolithic `export.py` into focused modules with dependency injection
+  - `orchestrator.py` — core export engine and template rendering
+  - `validators.py` — input validation
+  - `security.py` — security utilities
+  - `audit.py` — structured audit logging
+  - `config.py` — TOML configuration
+  - `dependencies.py` — dependency injection container
+  - `exceptions.py` — exception hierarchy and result types
 
-#### Error Handling 🐛
-- **Improved error handling**: Fail-fast behavior for invalid templates
-  - Template validation happens before export starts
-  - Clear error messages with actionable guidance
-  - **Example**:
-    ```bash
-    # Before: Cryptic Jinja2 error after processing
-    # After: Clear validation error before processing starts
-    Error: Template file does not exist: custom.html.j2
-    ```
+#### Input Validation 🛡️
+- **Template validation**: Template paths are validated before export starts, replacing cryptic Jinja2 errors with clear messages
 
-### Performance Improvements
+### Fixed
+
+#### Security Hardening 🔒
+- **Path traversal protection**: `validate_path_traversal()` prevents directory escape attacks
+- **Subprocess timeouts**: Prevents hanging on slow or broken notebook exports
+- **Sandboxed Jinja2**: Uses `SandboxedEnvironment` to prevent template injection
+- **TOCTOU fixes**: File existence checks no longer subject to race conditions
+- **DoS protections**: File size limits and worker count validation
+- **Audit logging**: Structured JSON audit log for file access and export operations
+
+### Performance
 
 | Scenario | Before | After | Improvement |
 |----------|--------|-------|-------------|
 | 10 notebooks | ~30s | ~8s | **3.75x faster** |
 | 50 notebooks | ~150s | ~40s | **3.75x faster** |
-| Single large notebook | ~12s | ~12s | No change |
-
-**Note**: Performance gains scale with the number of notebooks, not individual notebook size.
+| Single notebook | ~12s | ~12s | No change |
 
 ### Upgrade Path
 
-**From 0.2.x to Unreleased:**
+**From 0.2.x to 0.3.0:**
 
 No breaking changes. All existing commands work as-is. New features are opt-in.
 
-1. **Enable parallel export** (already default):
+1. **Parallel export** is already the default:
    ```bash
-   uvx marimushka export  # Already uses parallel by default
+   uvx marimushka export  # Uses parallel by default
    ```
-
 2. **Try watch mode** (optional):
    ```bash
    uv add marimushka[watch]
    uvx marimushka watch
    ```
 
-3. **Adjust performance** (optional):
-   ```bash
-   uvx marimushka export --max-workers 8  # More workers for faster export
-   ```
+---
 
-See: [MIGRATION.md](docs/MIGRATION.md) for detailed upgrade instructions.
+## [0.2.6] - 2026-02-02
+
+### Changed
+- **Synced with Rhiza framework**: Tooling and dependency updates
+- **Lock file maintenance**: Updated dependency lock file
+
+---
+
+## [0.2.5] - 2026-01-27
+
+### Fixed
+- **Mypy type corrections**: Resolved type annotation issues in core modules
+
+### Changed
+- **Dependency updates**: Updated `uv` and tooling to latest versions
+
+---
+
+## [0.2.4] - 2026-01-24
+
+### Added
+- **Doctests**: Added doctests to core modules for improved inline documentation coverage
+- **Coverage badge generation**: Added coverage badge JSON generation to the book build target
+
+### Fixed
+- **Type and linting errors**: Resolved mypy and ruff linting issues across core modules
+- **Deptry configuration**: Added `package_module_name_map` entries for `beautifulsoup4`, `pydantic-ai`, `python-pptx`, and `matplotlib` to resolve false-positive dependency warnings
+
+### Changed
+- **Quality improvements**: Implemented Phase 1 and Phase 2 quality improvement tasks
+- **Synced with Rhiza framework**: Updated Makefile and CI/CD integration
 
 ---
 
@@ -713,7 +774,15 @@ uvx marimushka export --template templates/custom.html.j2
 
 **Note**: 0.0.x releases were for internal development and testing. First stable release is 0.1.0.
 
-[Unreleased]: https://github.com/jebel-quant/marimushka/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/jebel-quant/marimushka/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/jebel-quant/marimushka/compare/v0.3.3...v0.3.4
+[0.3.3]: https://github.com/jebel-quant/marimushka/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/jebel-quant/marimushka/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/jebel-quant/marimushka/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/jebel-quant/marimushka/compare/v0.2.6...v0.3.0
+[0.2.6]: https://github.com/jebel-quant/marimushka/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/jebel-quant/marimushka/compare/v0.2.4...v0.2.5
+[0.2.4]: https://github.com/jebel-quant/marimushka/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/jebel-quant/marimushka/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/jebel-quant/marimushka/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/jebel-quant/marimushka/compare/v0.2.0...v0.2.1
