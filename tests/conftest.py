@@ -1,6 +1,13 @@
 """Pytest configuration file.
 
 This file contains fixtures and configuration for pytest.
+
+Security notes:
+- S101 (assert): assertions are expected and appropriate in test code.
+- S603 (subprocess without shell=True): subprocess calls in tests use explicit
+  argument lists without shell=True, which is the safe pattern.
+- S607 (partial executable path): test helpers resolve executables via shutil.which
+  before passing them to subprocess, mitigating PATH-injection risk.
 """
 
 import shutil
