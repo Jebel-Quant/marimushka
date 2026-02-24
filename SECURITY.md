@@ -2,147 +2,99 @@
 
 ## Supported Versions
 
+We actively support the following versions with security updates:
+
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.3.x   | :white_check_mark: |
-| 0.2.x   | :white_check_mark: |
-| 0.1.x   | :x:                |
-| < 0.1   | :x:                |
+| 0.8.x   | :white_check_mark: |
+| 0.7.x   | :white_check_mark: |
+| < 0.7   | :x:                |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Marimushka, please report it responsibly:
+We take security vulnerabilities seriously. If you discover a security issue, please report it responsibly.
 
-1. **Do not** open a public GitHub issue for security vulnerabilities
-2. Email the maintainers at [contact@jqr.ae](mailto:contact@jqr.ae) with:
-   - A description of the vulnerability
-   - Steps to reproduce the issue
-   - Potential impact assessment
-   - Any suggested fixes (optional)
+### How to Report
 
-## Response Timeline
+**Do NOT report security vulnerabilities through public GitHub issues.**
 
-- **Acknowledgment**: Within 48 hours
-- **Initial assessment**: Within 7 days
-- **Resolution target**: Within 30 days for critical issues
+Instead, please report them via one of the following methods:
 
-## Security Considerations
+1. **GitHub Security Advisories** (Preferred)
+   - Go to the [Security Advisories](https://github.com/jebel-quant/rhiza/security/advisories) page
+   - Click "New draft security advisory"
+   - Fill in the details and submit
 
-### Subprocess Execution
+2. **Email**
+   - Send details to the repository maintainers
+   - Include "SECURITY" in the subject line
 
-Marimushka executes `uvx marimo export` as a subprocess with the following security measures:
+### What to Include
 
-- **Timeout Protection**: All subprocess calls have a configurable timeout (default: 300 seconds) to prevent indefinite hangs
-- **Path Validation**: Input paths are validated to prevent path traversal attacks
-- **Explicit Arguments**: Uses `subprocess.run()` with explicit argument lists (no shell=True)
-- **Restricted Input**: Only processes `.py` files from specified directories
-- **No Arbitrary Execution**: Does not execute arbitrary user input as shell commands
+Please include the following information in your report:
 
-### Binary Path Validation
+- **Description**: A clear description of the vulnerability
+- **Impact**: The potential impact of the vulnerability
+- **Steps to Reproduce**: Detailed steps to reproduce the issue
+- **Affected Versions**: Which versions are affected
+- **Suggested Fix**: If you have one (optional)
 
-When using the `--bin-path` option to specify a custom directory for the `uvx` executable:
+### What to Expect
 
-- **Existence Check**: Validates that the path exists and is a directory
-- **Path Resolution**: Resolves paths to absolute form to prevent path traversal
-- **Optional Whitelist**: Supports whitelisting specific bin paths for additional security
+- **Acknowledgment**: We will acknowledge receipt within 48 hours
+- **Initial Assessment**: We will provide an initial assessment within 7 days
+- **Resolution Timeline**: We aim to resolve critical issues within 30 days
+- **Credit**: We will credit reporters in the security advisory (unless you prefer to remain anonymous)
 
-### Path Traversal Protection
+### Scope
 
-All file and directory paths are validated before use:
+This security policy applies to:
 
-- **Symlink Resolution**: Paths are resolved to their absolute form, following symlinks
-- **Base Directory Validation**: Paths are checked to ensure they don't escape designated base directories
-- **Template Path Validation**: Template paths are validated before loading to prevent path traversal
+- The Rhiza template system and configuration files
+- GitHub Actions workflows provided by this repository
+- Shell scripts in `.rhiza/scripts/`
+- Python utilities in `.rhiza/utils/`
 
-### Parallel Export Limits
+### Out of Scope
 
-The `--max-workers` parameter is bounded to prevent resource exhaustion:
+The following are generally out of scope:
 
-- **Minimum**: 1 worker
-- **Maximum**: 16 workers (default: 4)
-- **Automatic Clamping**: Values outside this range are automatically adjusted
+- Vulnerabilities in upstream dependencies (report these to the respective projects)
+- Issues that require physical access to a user's machine
+- Social engineering attacks
+- Denial of service attacks that require significant resources
 
-### Sandbox Mode
+## Security Measures
 
-By default, notebooks are exported with `--sandbox` flag, which:
-- Runs exports in an isolated environment
-- Prevents access to the local filesystem beyond the notebook
-- Requires dependencies to be declared in the notebook metadata
+This project implements several security measures:
 
-To maintain security, avoid using `--no-sandbox` in production CI/CD pipelines unless necessary.
+### Code Scanning
+- **CodeQL**: Automated code scanning for Python and GitHub Actions
+- **Bandit**: Python security linter integrated in CI and pre-commit
+- **pip-audit**: Dependency vulnerability scanning
+- **Secret Scanning**: GitHub secret scanning enabled on this repository
 
-### Template Rendering
+### Supply Chain Security
+- **SLSA Provenance**: Build attestations for release artifacts (public repositories only)
+- **Locked Dependencies**: `uv.lock` ensures reproducible builds
+- **Dependabot**: Automated dependency updates with security patches (version and security updates)
+- **Renovate**: Additional automated dependency update management
 
-Jinja2 templates are rendered with enhanced security:
+### Release Security
+- **OIDC Publishing**: PyPI trusted publishing without stored credentials
+- **Signed Commits**: GPG signing supported for releases
+- **Tag Protection**: Releases require version tag validation
 
-- **Sandboxed Environment**: Uses `jinja2.sandbox.SandboxedEnvironment` to prevent code execution in templates
-- **Autoescape Enabled**: HTML/XML content is automatically escaped, mitigating XSS risks
-- **Path Validation**: Template paths are validated before loading
+## Security Best Practices for Users
 
-## Security Features
+When using Rhiza templates in your projects:
 
-### Version 0.3.x+
+1. **Keep Updated**: Regularly sync with upstream templates
+2. **Review Changes**: Review template sync PRs before merging
+3. **Enable Security Features**: Enable CodeQL, secret scanning, and Dependabot in your repositories
+4. **Use Locked Dependencies**: Always commit `uv.lock` for reproducible builds
+5. **Configure Branch Protection**: Require PR reviews and status checks
 
-- Path traversal protection for all file operations
-- Subprocess timeout enforcement (300 seconds default)
-- Binary path validation and whitelisting support
-- Worker count bounds enforcement (1-16)
-- Sandboxed Jinja2 template rendering
-- Comprehensive input validation
-- **TOCTOU race condition prevention**: Uses atomic file operations and stat checks
-- **DoS protections**: File size limits (10MB default), timeout enforcement, worker limits
-- **Error message sanitization**: Sensitive paths and data redacted from logs
-- **Audit logging**: Security-relevant events logged to structured audit log
-- **Secure file permissions**: Output files created with restrictive permissions (0o644)
-- **Configuration file support**: Security settings configurable via .marimushka.toml
+## Acknowledgments
 
-## Security Best Practices
-
-When using Marimushka:
-
-1. **Always use sandbox mode** in production environments
-2. **Limit worker count** to prevent resource exhaustion (use default or lower)
-3. **Validate input paths** when integrating with other systems
-4. **Review templates** before using custom templates from untrusted sources
-5. **Set appropriate timeouts** for long-running notebook exports
-6. **Use whitelisted bin paths** in shared/multi-tenant environments
-7. **Enable audit logging** in production environments for security monitoring
-8. **Use configuration files** to standardize security settings across deployments
-9. **Review audit logs** regularly for suspicious activity
-
-## Configuration File
-
-Marimushka supports configuration via `.marimushka.toml` file:
-
-```toml
-[marimushka]
-output = "_site"
-sandbox = true
-parallel = true
-max_workers = 4
-timeout = 300
-
-[marimushka.security]
-audit_enabled = true
-audit_log = ".marimushka-audit.log"
-max_file_size_mb = 10
-file_permissions = "0o644"
-```
-
-See `.marimushka.toml.example` for a complete example.
-
-## Audit Logging
-
-Security-relevant events are logged to the audit log when enabled:
-
-- Path validation (traversal attempts, bin path checks)
-- Template rendering operations
-- Notebook export operations
-- File access operations
-- Configuration loading
-
-Audit logs are structured JSON entries with timestamps and event details.
-
-## Security Updates
-
-Security patches are released as part of regular version updates. Subscribe to GitHub releases to stay informed.
+We thank the security researchers and community members who help keep Rhiza secure.
